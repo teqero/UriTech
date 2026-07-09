@@ -47,6 +47,23 @@ export function buildAuthSession(
   };
 }
 
+/** Garante theme/role quando a API (ex. Supabase Edge) devolve só token + user. */
+export function normalizeAuthSession(
+  raw: Partial<AuthSession> & Pick<AuthSession, 'accessToken'> & { user: AuthUser },
+): AuthSession {
+  const built = buildAuthSession(raw.accessToken, raw.user);
+  return {
+    ...built,
+    ...raw,
+    accessToken: raw.accessToken,
+    user: raw.user,
+    role: raw.role ?? built.role,
+    permissions: raw.permissions ?? built.permissions,
+    theme: raw.theme?.primary ? raw.theme : built.theme,
+    modules: raw.modules ?? built.modules,
+  };
+}
+
 export const AUTH_STORAGE_KEY = 'urigo_auth_session';
 
 /** Cookie HTTP-only usado pelo middleware Next.js (web-user / web-admin). */

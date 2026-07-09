@@ -6,6 +6,7 @@ import {
   type LoginCredentials,
   buildAuthSession,
   getWebHomeRoute,
+  normalizeAuthSession,
 } from '@uritech/shared';
 
 const API_BASE =
@@ -26,9 +27,10 @@ export async function loginRequest(credentials: LoginCredentials): Promise<AuthS
 
 export function saveSession(session: AuthSession) {
   if (typeof window === 'undefined') return;
-  localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(session));
-  document.documentElement.style.setProperty('--profile-primary', session.theme.primary);
-  document.documentElement.style.setProperty('--profile-accent', session.theme.accent);
+  const normalized = normalizeAuthSession(session);
+  localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(normalized));
+  document.documentElement.style.setProperty('--profile-primary', normalized.theme.primary);
+  document.documentElement.style.setProperty('--profile-accent', normalized.theme.accent);
 }
 
 export function loadSession(): AuthSession | null {
@@ -36,7 +38,9 @@ export function loadSession(): AuthSession | null {
   const raw = localStorage.getItem(AUTH_STORAGE_KEY);
   if (!raw) return null;
   try {
-    return JSON.parse(raw) as AuthSession;
+    const parsed = JSON.parse(raw) as Partial<AuthSession>;
+    if (!parsed.accessToken || !parsed.user) return null;
+    return normalizeAuthSession(parsed as AuthSession);
   } catch {
     return null;
   }

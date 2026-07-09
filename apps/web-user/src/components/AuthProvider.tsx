@@ -25,7 +25,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const stored = loadSession();
     setSession(stored);
-    if (stored) {
+    if (stored?.accessToken && stored.user) {
       document.documentElement.style.setProperty('--profile-primary', stored.theme.primary);
       void enableWebPush(stored.accessToken);
     }

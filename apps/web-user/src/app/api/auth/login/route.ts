@@ -5,6 +5,8 @@ import {
   AUTH_COOKIE_MAX_AGE,
   type AuthSession,
   type LoginCredentials,
+  type AuthUser,
+  normalizeAuthSession,
 } from '@uritech/shared';
 
 const API_BASE =
@@ -27,7 +29,8 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const session = (await res.json()) as AuthSession;
+  const raw = (await res.json()) as Partial<AuthSession> & { accessToken: string; user: AuthUser };
+  const session = normalizeAuthSession(raw);
   const response = NextResponse.json(session);
   response.cookies.set(AUTH_COOKIE, session.accessToken, {
     httpOnly: true,
