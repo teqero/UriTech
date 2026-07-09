@@ -2,7 +2,7 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-nati
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, borderRadius, formatCurrency } from '@uritech/shared';
-import { navigateToOrderConfirmed } from '../lib/navigation';
+import { confirmServiceOrder } from '../lib/service-checkout';
 
 const VIDEO_DOCTORS = [
   { name: 'Dr. Manuel Silva', specialty: 'Clínico Geral', rating: 4.8, price: 3500, slot: 'Hoje, 15:30' },
@@ -38,11 +38,11 @@ export default function VideoConsultaScreen() {
               <Text style={styles.price}>{formatCurrency(doc.price)}</Text>
               <TouchableOpacity
                 style={styles.btn}
-                onPress={() => navigateToOrderConfirmed({
-                  service: 'medico',
+                onPress={() => void confirmServiceOrder({
+                  service: 'video-consulta',
                   dest: doc.name,
                   label: `Vídeo consulta — ${doc.name}`,
-                  amount: String(doc.price),
+                  amount: doc.price,
                 })}
               >
                 <Text style={styles.btnText}>INICIAR</Text>

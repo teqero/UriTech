@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-nati
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, borderRadius, formatCurrency } from '@uritech/shared';
-import { navigateToOrderConfirmed } from '../lib/navigation';
+import { confirmServiceOrder } from '../lib/service-checkout';
 
 const SPECIALISTS = [
   { name: 'Salão Glamour Luanda', service: 'Cabelo & Unhas', rating: 4.9, price: 12000 },
@@ -32,11 +32,11 @@ export default function BelezaScreen() {
   const categories = activeTab === 'pet' ? PET_CATEGORIES : CATEGORIES;
 
   const book = (name: string, price: number) => {
-    navigateToOrderConfirmed({
+    void confirmServiceOrder({
       service: activeTab === 'pet' ? 'petcare' : 'beleza',
       dest: name,
       label: activeTab === 'pet' ? `Pet Care — ${name}` : `Beleza — ${name}`,
-      amount: String(price),
+      amount: price,
     });
   };
 

@@ -11,7 +11,7 @@ import {
   formatPlaceLabel,
 } from '@uritech/shared';
 import { DestinationSearchInput } from '../components/DestinationSearchInput';
-import { navigateToOrderConfirmed } from '../lib/navigation';
+import { confirmServiceOrder } from '../lib/service-checkout';
 
 const SIZES = [
   { id: 'envelope', name: 'Envelope', desc: 'Até 1kg', price: 500, icon: '📨' },
@@ -101,11 +101,11 @@ export default function EnvioScreen() {
 
         <TouchableOpacity
           style={styles.primaryBtn}
-          onPress={() => navigateToOrderConfirmed({
+          onPress={() => void confirmServiceOrder({
             service: 'envio',
             dest: dropoff,
             label: 'Envio de encomenda',
-            amount: String(total),
+            amount: total,
           })}
         >
           <Text style={styles.primaryBtnText}>SOLICITAR ENVIO</Text>

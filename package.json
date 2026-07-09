@@ -21,7 +21,10 @@
     "dev:mobile-driver": "turbo run dev --filter=@uritech/mobile-driver",
     "dev:mobile-vendor": "turbo run dev --filter=@uritech/mobile-vendor",
     "docker:prod": "docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env up -d --build",
-    "docker:prod:down": "docker compose -f deploy/docker-compose.prod.yml down"
+    "docker:prod:down": "docker compose -f deploy/docker-compose.prod.yml down",
+    "db:up": "docker compose -f docker-compose.dev.yml up -d",
+    "db:down": "docker compose -f docker-compose.dev.yml down",
+    "db:reset": "docker compose -f docker-compose.dev.yml down -v && docker compose -f docker-compose.dev.yml up -d"
   },
   "devDependencies": {
     "turbo": "^2.3.3",

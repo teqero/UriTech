@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-nati
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { INTERCITY_CLASSES, colors, spacing, borderRadius, formatCurrency } from '@uritech/shared';
-import { navigateToOrderConfirmed } from '../lib/navigation';
+import { confirmServiceOrder } from '../lib/service-checkout';
 
 export default function IntercidadesScreen() {
   const [passengers, setPassengers] = useState(1);
@@ -77,11 +77,11 @@ export default function IntercidadesScreen() {
           style={styles.primaryBtn}
           onPress={() => {
             const cls = INTERCITY_CLASSES.find((c) => c.id === selectedClass);
-            navigateToOrderConfirmed({
-              service: 'taxi',
+            void confirmServiceOrder({
+              service: 'intercidades',
               dest: 'Benguela',
               label: `Intercidades ${cls?.name ?? 'Standard'}`,
-              amount: String(cls?.price ?? 15000),
+              amount: cls?.price ?? 15000,
             });
           }}
         >

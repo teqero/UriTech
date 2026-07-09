@@ -5,7 +5,9 @@ import {
   DEFAULT_ORIGIN,
   STORE_PICKUP_LOCATIONS,
   STORE_VENDOR_EMAIL,
+  resolveOrderServiceType,
 } from '@uritech/shared';
+import type { ServiceCheckoutDto } from './dto/service-checkout.dto';
 import { Repository } from 'typeorm';
 import { isDatabaseEnabled } from '../database/database.config';
 import { OrderEntity } from '../database/entities/order.entity';
@@ -138,6 +140,48 @@ export class OrdersService {
       return available(rows.map((o) => this.toOrder(o)));
     }
     return available(this.memoryOrders);
+  }
+
+  async checkoutService(userId: string, dto: ServiceCheckoutDto): Promise<Order> {
+    const serviceType = resolveOrderServiceType(dto.serviceKey);
+    const payWithWallet = dto.payWithWallet !== false;
+
+    if (payWithWallet) {
+      await this.walletService.pay(
+        userId,
+        dto.total,
+        `Pedido ${dto.serviceName}`,
+      );
+    }
+
+    const deliveryAddress =
+      dto.destinationLabel?.trim() ||
+      DEFAULT_ORIGIN.address ||
+      'Destino — cliente UriGo';
+
+    return this.create({
+      userId,
+      serviceType,
+      status: 'pending',
+      items: dto.items.map((item) => ({
+        menuItemId: item.menuItemId ?? dto.serviceKey,
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+      })),
+      total: dto.total,
+      deliveryFee: dto.deliveryFee ?? 0,
+      pickupLocation: {
+        latitude: DEFAULT_ORIGIN.latitude,
+        longitude: DEFAULT_ORIGIN.longitude,
+        address: DEFAULT_ORIGIN.address ?? 'Recolha — cliente UriGo',
+      },
+      deliveryLocation: {
+        latitude: DEFAULT_ORIGIN.latitude,
+        longitude: DEFAULT_ORIGIN.longitude,
+        address: deliveryAddress,
+      },
+    });
   }
 
   async checkoutStore(userId: string, dto: StoreCheckoutDto): Promise<Order> {

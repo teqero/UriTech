@@ -117,10 +117,40 @@ if ($LASTEXITCODE -ne 0) {
   exit 1
 }
 
+$DatabaseUrl = 'postgresql://uritech:uritech@localhost:5432/uritech'
+$UsePostgres = $false
+
+if (Get-Command docker -ErrorAction SilentlyContinue) {
+  Write-Host 'A arrancar Postgres (docker-compose.dev.yml)...' -ForegroundColor Yellow
+  docker compose -f docker-compose.dev.yml up -d 2>&1 | Out-Null
+  if ($LASTEXITCODE -eq 0) {
+    $deadline = (Get-Date).AddSeconds(30)
+    while ((Get-Date) -lt $deadline) {
+      $health = docker inspect --format='{{.State.Health.Status}}' uritech-postgres 2>$null
+      if ($health -eq 'healthy') { $UsePostgres = $true; break }
+      Start-Sleep -Seconds 2
+    }
+    if (-not $UsePostgres) {
+      $pgReady = docker exec uritech-postgres pg_isready -U uritech -d uritech 2>$null
+      if ($LASTEXITCODE -eq 0) { $UsePostgres = $true }
+    }
+  }
+}
+
+if ($UsePostgres) {
+  Write-Host '  Postgres pronto — backend usará persistência' -ForegroundColor Green
+} else {
+  Write-Host '  Postgres indisponível — backend em memória (npm run db:up para activar)' -ForegroundColor DarkYellow
+}
+
 Write-Host ''
 Write-Host 'A abrir servicos em janelas separadas...' -ForegroundColor Yellow
 
-Start-ServiceWindow 'UriGo Backend :4000' 'npm run dev --workspace=@uritech/backend'
+$backendEnv = @{}
+if ($UsePostgres) {
+  $backendEnv['DATABASE_URL'] = $DatabaseUrl
+}
+Start-ServiceWindow 'UriGo Backend :4000' 'npm run dev --workspace=@uritech/backend' $backendEnv
 Start-Sleep -Seconds 2
 
 Start-ServiceWindow 'UriGo Web Admin :3000' 'npm run dev --workspace=@uritech/web-admin'
@@ -151,6 +181,11 @@ Write-Host ''
 Write-Host '=====================================' -ForegroundColor Cyan
 Write-Host 'Servicos' -ForegroundColor White
 Write-Host "  API:        http://localhost:$($Ports.Backend)/api/v1"
+if ($UsePostgres) {
+  Write-Host '  Storage:    postgres (localhost:5432)' -ForegroundColor DarkGray
+} else {
+  Write-Host '  Storage:    memory (sem DATABASE_URL)' -ForegroundColor DarkGray
+}
 Write-Host "  Web Admin:  http://localhost:$($Ports.WebAdmin)"
 Write-Host "  Web User:   http://localhost:$($Ports.WebUser)"
 Write-Host "  Mobile Drv: exp://localhost:$($Ports.MobileDriver)  (legado)"

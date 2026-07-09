@@ -13,6 +13,7 @@ import {
   resolveDemoPlace,
 } from '@uritech/shared';
 import type { Ride } from '@uritech/shared';
+import type { Order } from '@uritech/shared';
 import {
   fetchRide,
   isApiRideId,
@@ -20,6 +21,13 @@ import {
   rideStatusLabel,
   rideStepIndex,
 } from '@/lib/rides-api';
+import {
+  fetchOrder,
+  isApiOrderId,
+  orderEtaHint,
+  orderStatusLabel,
+  orderStepIndex,
+} from '@/lib/orders-api';
 import styles from '../landing.module.css';
 import trackingStyles from './tracking.module.css';
 
@@ -33,10 +41,12 @@ export default function TrackingPage() {
   const cleanRef = refParam.replace(/^#/, '');
 
   const [ride, setRide] = useState<Ride | null>(null);
-  const trackApi = isApiRideId(cleanRef);
+  const [order, setOrder] = useState<Order | null>(null);
+  const trackRide = service === 'taxi' && isApiRideId(cleanRef);
+  const trackOrder = !trackRide && isApiOrderId(cleanRef);
 
   useEffect(() => {
-    if (!trackApi) return;
+    if (!trackRide) return;
     let active = true;
     const load = async () => {
       try {
@@ -52,19 +62,54 @@ export default function TrackingPage() {
       active = false;
       clearInterval(timer);
     };
-  }, [cleanRef, trackApi]);
+  }, [cleanRef, trackRide]);
+
+  useEffect(() => {
+    if (!trackOrder) return;
+    let active = true;
+    const load = async () => {
+      try {
+        const data = await fetchOrder(cleanRef);
+        if (active && data) setOrder(data);
+      } catch {
+        /* fallback estático */
+      }
+    };
+    load();
+    const timer = setInterval(load, 4000);
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, [cleanRef, trackOrder]);
 
   const destPlace = useMemo(() => {
     if (ride?.destination) return ride.destination;
+    if (order?.deliveryLocation) return order.deliveryLocation;
     return destQuery ? resolveDemoPlace(destQuery) ?? previewDemoPlace(destQuery) : undefined;
-  }, [destQuery, ride]);
+  }, [destQuery, ride, order]);
 
-  const pickup = ride?.pickup ?? DEFAULT_ORIGIN;
-  const serviceLabel = SERVICE_LABELS[service] ?? 'Pedido';
-  const stepIndex = ride ? rideStepIndex(ride.status) : 1;
+  const pickup = ride?.pickup ?? order?.pickupLocation ?? DEFAULT_ORIGIN;
+  const serviceLabel = SERVICE_LABELS[service] ?? SERVICE_LABELS[order?.serviceType ?? ''] ?? 'Pedido';
+  const stepIndex = ride
+    ? rideStepIndex(ride.status)
+    : order
+      ? Math.min(orderStepIndex(order.status), STEPS.length)
+      : 1;
   const etaMin = ride ? Math.max(1, Math.round(ride.duration / 60)) : 12;
-  const statusLabel = ride ? rideStatusLabel(ride.status) : 'A CAMINHO';
-  const etaHint = ride ? rideEtaHint(ride.status, service) : (service === 'taxi' ? 'O motorista está a caminho' : 'O estafeta está a esta distância');
+  const statusLabel = ride
+    ? rideStatusLabel(ride.status)
+    : order
+      ? orderStatusLabel(order.status)
+      : 'A CAMINHO';
+  const etaHint = ride
+    ? rideEtaHint(ride.status, service)
+    : order
+      ? orderEtaHint(order.status, service)
+      : service === 'taxi'
+        ? 'O motorista está a caminho'
+        : 'O estafeta está a esta distância';
+  const isComplete = ride?.status === 'completed' || order?.status === 'delivered';
 
   return (
     <div className={styles.page}>
@@ -111,7 +156,7 @@ export default function TrackingPage() {
 
         <div className={trackingStyles.etaBlock}>
           <p className={trackingStyles.etaValue}>
-            {ride?.status === 'completed' ? 'Entregue ✓' : `${etaMin} Minutos`}
+            {isComplete ? 'Entregue ✓' : `${etaMin} Minutos`}
           </p>
           <p className={trackingStyles.etaHint}>{etaHint}</p>
         </div>
@@ -141,7 +186,8 @@ export default function TrackingPage() {
             { label: 'Referência', value: `#${cleanRef.slice(0, 12)}` },
             { label: 'Estado', value: statusLabel },
             ...(ride ? [{ label: 'Tarifa', value: formatCurrency(ride.fare) }] : []),
-            ...(!ride ? [{ label: 'Total Pago', value: '5.200 Kz' }] : []),
+            ...(order ? [{ label: 'Total Pago', value: formatCurrency(order.total) }] : []),
+            ...(!ride && !order ? [{ label: 'Total Pago', value: '5.200 Kz' }] : []),
           ].map((row) => (
             <div key={row.label} className={trackingStyles.summaryRow}>
               <span>{row.label}</span>

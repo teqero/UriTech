@@ -14,6 +14,7 @@ import { Public } from '../auth/public.decorator';
 import { OrdersService } from './orders.service';
 import type { OrderStatus } from '@uritech/shared';
 import { StoreCheckoutDto } from './dto/store-checkout.dto';
+import { ServiceCheckoutDto } from './dto/service-checkout.dto';
 import { NotificationsService } from '../notifications/notifications.service';
 
 const VENDOR_ROLES = new Set(['vendor', 'restaurant', 'pharmacy', 'supermarket', 'store']);
@@ -58,6 +59,16 @@ export class OrdersController {
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.ordersService.findById(id);
+  }
+
+  @Post('service-checkout')
+  async serviceCheckout(@Body() body: ServiceCheckoutDto, @CurrentUser() user: JwtUserPayload) {
+    if (user.role !== 'user') {
+      throw new ForbiddenException('Apenas clientes podem solicitar serviços');
+    }
+    const order = await this.ordersService.checkoutService(user.userId, body);
+    void this.notificationsService.notifyOrderUpdate(order);
+    return order;
   }
 
   @Post('checkout')

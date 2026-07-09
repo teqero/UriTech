@@ -84,6 +84,7 @@ export class DbSeedService implements OnModuleInit {
     const maria = users.find((u) => u.email === 'maria@uritech.com');
     const budi = users.find((u) => u.email === 'budi@uritech.com');
     const warung = users.find((u) => u.email === 'warung@uritech.com');
+    const entregador = users.find((u) => u.email === 'entregador@uritech.com');
 
     if (joao && budi) {
       await this.ridesRepo.save(
@@ -160,6 +161,7 @@ export class DbSeedService implements OnModuleInit {
         this.ordersRepo.create({
           userId: maria.id,
           vendorId: warung.id,
+          driverId: entregador?.id,
           serviceType: 'lojas',
           status: 'ready',
           items: [{ menuItemId: '4', name: 'Detergente, Esponjas', quantity: 1, price: 3200 }],
@@ -171,7 +173,7 @@ export class DbSeedService implements OnModuleInit {
         this.ordersRepo.create({
           userId: joao.id,
           vendorId: warung.id,
-          driverId: budi?.id,
+          driverId: entregador?.id ?? budi?.id,
           serviceType: 'lojas',
           status: 'delivered',
           items: [{ menuItemId: '5', name: 'Café, Açúcar', quantity: 1, price: 4100 }],
@@ -186,6 +188,16 @@ export class DbSeedService implements OnModuleInit {
     if (joao) {
       await this.walletsRepo.save(
         this.walletsRepo.create({ userId: joao.id, balance: 124500, currency: 'AOA' }),
+      );
+    }
+    if (maria) {
+      await this.walletsRepo.save(
+        this.walletsRepo.create({ userId: maria.id, balance: 45000, currency: 'AOA' }),
+      );
+    }
+    if (budi) {
+      await this.walletsRepo.save(
+        this.walletsRepo.create({ userId: budi.id, balance: 8200, currency: 'AOA' }),
       );
     }
 

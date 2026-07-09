@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-nati
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, borderRadius } from '@uritech/shared';
-import { navigateToOrderConfirmed } from '../lib/navigation';
+import { confirmServiceOrder } from '../lib/service-checkout';
 
 const CALENDAR_DAYS = [
   [1, 2, 3], [8, 9, 10], [15, 16, 17], [22, 23, 24], [29, 30, 31],
@@ -86,11 +86,11 @@ export default function AgendarScreen() {
 
         <TouchableOpacity
           style={styles.primaryBtn}
-          onPress={() => navigateToOrderConfirmed({
-            service: 'taxi',
+          onPress={() => void confirmServiceOrder({
+            service: 'agendar',
             dest: 'Viagem agendada',
             label: `Agendamento dia ${selectedDay}`,
-            amount: '1500',
+            amount: 1500,
           })}
         >
           <Text style={styles.primaryBtnText}>CONFIRMAR AGENDAMENTO</Text>

@@ -2,11 +2,22 @@ import { Body, Controller, Get, Param, Patch } from '@nestjs/common';
 import { Public } from '../auth/public.decorator';
 import { Roles } from '../auth/roles.decorator';
 import { SERVICES, PROMO_BANNERS } from '@uritech/shared';
+import { isDatabaseEnabled } from '../database/database.config';
 import { CatalogService } from './catalog.service';
 
 @Controller('services')
 export class ServicesController {
   constructor(private readonly catalogService: CatalogService) {}
+
+  @Public()
+  @Get('health')
+  health() {
+    return {
+      ok: true,
+      storage: isDatabaseEnabled() ? 'postgres' : 'memory',
+      timestamp: new Date().toISOString(),
+    };
+  }
 
   @Public()
   @Get()

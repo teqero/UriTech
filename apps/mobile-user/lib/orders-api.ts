@@ -37,6 +37,25 @@ export async function createStoreOrder(payload: StoreCheckoutPayload): Promise<O
   return res.json() as Promise<Order>;
 }
 
+export interface ServiceCheckoutPayload {
+  serviceKey: string;
+  serviceName: string;
+  items: { name: string; quantity: number; price: number; menuItemId?: string }[];
+  total: number;
+  deliveryFee?: number;
+  destinationLabel?: string;
+  payWithWallet?: boolean;
+}
+
+export async function createServiceOrder(payload: ServiceCheckoutPayload): Promise<Order> {
+  const res = await apiFetch('/orders/service-checkout', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) return parseError(res, 'Não foi possível solicitar o serviço');
+  return res.json() as Promise<Order>;
+}
+
 export async function fetchRiderActiveOrders(): Promise<Order[]> {
   const res = await apiFetch('/orders');
   if (!res.ok) return parseError(res, 'Não foi possível carregar as rotas');

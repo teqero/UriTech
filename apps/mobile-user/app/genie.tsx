@@ -2,7 +2,7 @@ import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet } from 
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, borderRadius, formatCurrency } from '@uritech/shared';
-import { navigateToOrderConfirmed } from '../lib/navigation';
+import { confirmServiceOrder } from '../lib/service-checkout';
 
 const STEPS = [
   { icon: '🏪', text: 'Genie vai à loja' },
@@ -57,11 +57,11 @@ export default function GenieScreen() {
 
         <TouchableOpacity
           style={styles.primaryBtn}
-          onPress={() => navigateToOrderConfirmed({
+          onPress={() => void confirmServiceOrder({
             service: 'genie',
             dest: 'Compras Genie',
             label: 'Genie de Compras',
-            amount: '800',
+            amount: 800,
           })}
         >
           <Text style={styles.primaryBtnText}>SOLICITAR GENIE</Text>

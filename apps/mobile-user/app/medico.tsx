@@ -2,7 +2,8 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-nati
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, borderRadius, formatCurrency } from '@uritech/shared';
-import { navigateTo, navigateToOrderConfirmed } from '../lib/navigation';
+import { navigateTo } from '../lib/navigation';
+import { confirmServiceOrder } from '../lib/service-checkout';
 
 const DOCTORS = [
   { name: 'Dr. Manuel Silva', specialty: 'Clínico Geral', rating: 4.8, price: 5000 },
@@ -21,11 +22,11 @@ const CATEGORY_ROUTES: Record<string, () => void> = {
 
 export default function MedicoScreen() {
   const book = (name: string, price: number) => {
-    navigateToOrderConfirmed({
+    void confirmServiceOrder({
       service: 'medico',
       dest: name,
       label: `Consulta — ${name}`,
-      amount: String(price),
+      amount: price,
     });
   };
 

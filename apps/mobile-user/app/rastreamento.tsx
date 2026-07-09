@@ -20,10 +20,10 @@ import { fetchRide } from '../lib/rides-api';
 const TAXI_STEPS = ['Confirmado', 'A Caminho', 'Entregue'];
 const LOJA_STEPS = ['Confirmado', 'Preparando', 'A Caminho', 'Entregue'];
 
-function shouldTrackApi(ref?: string, service?: string): boolean {
+function shouldTrackApi(ref?: string): boolean {
   if (!ref) return false;
-  if (service === 'lojas') return true;
-  return ref.length > 10 && ref.includes('-');
+  if (/^URI-\d{5}$/i.test(ref)) return false;
+  return true;
 }
 
 function orderStepIndex(status: OrderStatus): number {
@@ -114,7 +114,7 @@ export default function RastreamentoScreen() {
   const [order, setOrder] = useState<Order | null>(null);
   const [polling, setPolling] = useState(false);
 
-  const trackApi = shouldTrackApi(ref, service);
+  const trackApi = shouldTrackApi(ref);
   const isLoja = service === 'lojas';
 
   useEffect(() => {

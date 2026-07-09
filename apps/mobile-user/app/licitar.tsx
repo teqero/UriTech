@@ -2,7 +2,7 @@ import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet } from 
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, borderRadius, formatCurrency } from '@uritech/shared';
-import { navigateToOrderConfirmed } from '../lib/navigation';
+import { confirmServiceOrder } from '../lib/service-checkout';
 
 const BIDS = [
   { name: 'João Pedro', rating: 4.9, experience: '5 anos', price: 12000 },
@@ -47,11 +47,11 @@ export default function LicitarScreen() {
 
         <TouchableOpacity
           style={styles.primaryBtn}
-          onPress={() => navigateToOrderConfirmed({
-            service: 'servicos',
+          onPress={() => void confirmServiceOrder({
+            service: 'licitar',
             dest: service ?? 'Licitação',
             label: 'Licitar serviço',
-            amount: '8000',
+            amount: 8000,
           })}
         >
           <Text style={styles.primaryBtnText}>PEDIR LICITAÇÕES</Text>
@@ -68,11 +68,11 @@ export default function LicitarScreen() {
               <Text style={styles.bidPrice}>{formatCurrency(bid.price)}</Text>
               <TouchableOpacity
                 style={styles.acceptBtn}
-                onPress={() => navigateToOrderConfirmed({
-                  service: 'servicos',
+                onPress={() => void confirmServiceOrder({
+                  service: 'licitar',
                   dest: bid.name,
                   label: `Licitação — ${bid.name}`,
-                  amount: String(bid.price),
+                  amount: bid.price,
                 })}
               ><Text style={styles.acceptText}>Aceitar</Text></TouchableOpacity>
             </View>

@@ -1,3 +1,40 @@
+import type { ServiceType } from './types';
+
+const VALID_SERVICE_TYPES = new Set<ServiceType>([
+  'taxi',
+  'envio',
+  'lojas',
+  'servicos',
+  'medico',
+  'beleza',
+  'imoveis',
+  'carros',
+  'petcare',
+  'partilha',
+  'genie',
+  'marketplace',
+  'pay',
+  'securepay',
+  'uriprova',
+]);
+
+/** Mapeia rotas mobile/web para ServiceType persistido na API. */
+export function resolveOrderServiceType(serviceKey: string): ServiceType {
+  const aliases: Record<string, ServiceType> = {
+    agendar: 'servicos',
+    assistencia: 'servicos',
+    automovel: 'servicos',
+    intercidades: 'servicos',
+    licitar: 'servicos',
+    pool: 'partilha',
+    food: 'lojas',
+    'video-consulta': 'medico',
+  };
+  if (aliases[serviceKey]) return aliases[serviceKey];
+  if (VALID_SERVICE_TYPES.has(serviceKey as ServiceType)) return serviceKey as ServiceType;
+  return 'servicos';
+}
+
 /** Fluxos pós-selecção de serviço (PDF partes 1–3, padrão Gojek/InDrive) */
 
 export const WEB_SERVICE_CONTINUE: Record<

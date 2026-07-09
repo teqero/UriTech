@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-nati
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, borderRadius, formatCurrency } from '@uritech/shared';
-import { navigateToOrderConfirmed } from '../lib/navigation';
+import { confirmServiceOrder } from '../lib/service-checkout';
 
 const RIDES = [
   { name: 'Ricardo M.', rating: 4.9, time: 'Hoje, 17:30', price: 600, from: 'Central', to: 'Talatona', seats: 2 },
@@ -14,11 +14,11 @@ export default function PartilhaScreen() {
   const [mode, setMode] = useState<'find' | 'offer'>('find');
 
   const reserve = (ride: typeof RIDES[0]) => {
-    navigateToOrderConfirmed({
+    void confirmServiceOrder({
       service: 'partilha',
       dest: `${ride.from} → ${ride.to}`,
       label: `Partilha com ${ride.name}`,
-      amount: String(ride.price),
+      amount: ride.price,
     });
   };
 
@@ -78,11 +78,11 @@ export default function PartilhaScreen() {
         ) : (
           <TouchableOpacity
             style={styles.offerCard}
-            onPress={() => navigateToOrderConfirmed({
+            onPress={() => void confirmServiceOrder({
               service: 'partilha',
               dest: 'Oferta de viagem',
               label: 'Publicar viagem partilhada',
-              amount: '600',
+              amount: 600,
             })}
           >
             <Text style={styles.offerTitle}>Publicar a sua viagem</Text>

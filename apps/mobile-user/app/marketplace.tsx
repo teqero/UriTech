@@ -5,7 +5,8 @@ import {
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, borderRadius, formatCurrency } from '@uritech/shared';
-import { navigateTo, navigateToOrderConfirmed } from '../lib/navigation';
+import { navigateTo } from '../lib/navigation';
+import { confirmServiceOrder } from '../lib/service-checkout';
 import {
   type MarketplaceTab,
   type MarketplaceFilters,
@@ -156,11 +157,11 @@ export default function MarketplaceScreen() {
                 if (tabKey === 'itens') {
                   navigateTo('/securepay');
                 } else {
-                  navigateToOrderConfirmed({
+                  void confirmServiceOrder({
                     service: tabKey === 'carros' ? 'carros' : 'imoveis',
                     dest: item.title,
                     label: item.title,
-                    amount: String(item.price),
+                    amount: item.price,
                   });
                 }
               }}

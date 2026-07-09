@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-nati
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { ROADSIDE_PROBLEMS, colors, spacing, borderRadius, formatCurrency } from '@uritech/shared';
-import { navigateToOrderConfirmed } from '../lib/navigation';
+import { confirmServiceOrder } from '../lib/service-checkout';
 
 export default function AssistenciaScreen() {
   const [selected, setSelected] = useState('tire');
@@ -53,11 +53,11 @@ export default function AssistenciaScreen() {
 
         <TouchableOpacity
           style={styles.primaryBtn}
-          onPress={() => navigateToOrderConfirmed({
-            service: 'servicos',
+          onPress={() => void confirmServiceOrder({
+            service: 'assistencia',
             dest: ROADSIDE_PROBLEMS.find((p) => p.id === selected)?.label ?? 'Assistência',
             label: 'Assistência Estrada SOS',
-            amount: '12500',
+            amount: 12500,
           })}
         >
           <Text style={styles.primaryBtnText}>SOLICITAR ASSISTÊNCIA</Text>

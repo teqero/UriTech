@@ -2,7 +2,7 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-nati
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, borderRadius, formatCurrency } from '@uritech/shared';
-import { navigateToOrderConfirmed } from '../lib/navigation';
+import { confirmServiceOrder } from '../lib/service-checkout';
 
 const POOL_PASSENGERS = [
   { name: 'Ana Silva', pickup: 'Recolha: Luanda Sul' },
@@ -50,11 +50,11 @@ export default function PoolScreen() {
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.primaryBtn}
-          onPress={() => navigateToOrderConfirmed({
-            service: 'partilha',
+          onPress={() => void confirmServiceOrder({
+            service: 'pool',
             dest: 'UriGo Pool',
             label: 'Pool — viagem partilhada',
-            amount: '900',
+            amount: 900,
           })}
         >
           <Text style={styles.primaryBtnText}>ACEITAR OFERTA POOL</Text>

@@ -232,8 +232,17 @@ export class NotificationsService implements OnModuleInit {
     };
 
     const results: { sent?: number }[] = [];
-    if (order.status === 'pending' && order.vendorId) {
-      results.push(await this.sendToUser(order.vendorId, vendorMessage));
+    if (order.status === 'pending') {
+      if (order.vendorId) {
+        results.push(await this.sendToUser(order.vendorId, vendorMessage));
+      }
+      results.push(
+        await this.sendToUser(order.userId, {
+          title: 'Pedido recebido',
+          body: 'O seu pedido foi registado com sucesso.',
+          data: { type: 'order', orderId: order.id, status: order.status },
+        }),
+      );
     }
 
     const userMessage = userMessages[order.status];

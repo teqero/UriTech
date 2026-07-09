@@ -2,7 +2,7 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-nati
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { CAR_CARE_SERVICES, colors, spacing, borderRadius, formatCurrency } from '@uritech/shared';
-import { navigateToOrderConfirmed } from '../lib/navigation';
+import { confirmServiceOrder } from '../lib/service-checkout';
 
 export default function AutomovelScreen() {
   return (
@@ -23,11 +23,11 @@ export default function AutomovelScreen() {
             <TouchableOpacity
               key={s.name}
               style={styles.serviceCard}
-              onPress={() => navigateToOrderConfirmed({
-                service: 'servicos',
+              onPress={() => void confirmServiceOrder({
+                service: 'automovel',
                 dest: s.name,
                 label: `Automóvel — ${s.name}`,
-                amount: String(s.price || 2500),
+                amount: s.price || 2500,
               })}
             >
               <Text style={{ fontSize: 28 }}>{s.icon}</Text>
