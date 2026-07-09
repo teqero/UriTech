@@ -5,15 +5,16 @@ export async function loadAuthSession(): Promise<AuthSession | null> {
   try {
     const raw = await AsyncStorage.getItem(AUTH_STORAGE_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<AuthSession>;
-    if (!parsed.accessToken || !parsed.user) return null;
-    return normalizeAuthSession(parsed as AuthSession);
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const token = parsed.accessToken ?? parsed.access_token ?? parsed.token;
+    if (!token || !parsed.user) return null;
+    return normalizeAuthSession(parsed);
   } catch {
     return null;
   }
 }
 
-export async function saveAuthSession(session: AuthSession): Promise<void> {
+export async function saveAuthSession(session: AuthSession | Record<string, unknown>): Promise<void> {
   const normalized = normalizeAuthSession(session);
   await AsyncStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(normalized));
 }

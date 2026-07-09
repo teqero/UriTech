@@ -5,6 +5,7 @@ import {
   type LoginCredentials,
   getMobileHomeRoute,
   getProfileTheme,
+  normalizeAuthSession,
   type AppProfileId,
 } from '@uritech/shared';
 import { getApiBaseUrl } from '../lib/api';
@@ -57,11 +58,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error(msg);
     }
 
-    const data = (await res.json()) as AuthSession;
-    await saveAuthSession(data);
-    setSession(data);
+    const data = (await res.json()) as Record<string, unknown>;
+    const session = normalizeAuthSession(data);
+    await saveAuthSession(session);
+    setSession(session);
     void enablePushNotifications();
-    router.replace(getMobileHomeRoute(data.role) as never);
+    router.replace(getMobileHomeRoute(session.role) as never);
   }, []);
 
   const logout = useCallback(async () => {

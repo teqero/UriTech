@@ -3,9 +3,7 @@ import type { NextRequest } from 'next/server';
 import {
   AUTH_COOKIE,
   AUTH_COOKIE_MAX_AGE,
-  type AuthSession,
   type LoginCredentials,
-  type AuthUser,
   normalizeAuthSession,
 } from '@uritech/shared';
 
@@ -29,7 +27,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const raw = (await res.json()) as Partial<AuthSession> & { accessToken: string; user: AuthUser };
+  const raw = (await res.json()) as Record<string, unknown>;
   const session = normalizeAuthSession(raw);
   if (session.role !== 'admin') {
     return NextResponse.json({ message: 'Acesso reservado a administradores' }, { status: 403 });

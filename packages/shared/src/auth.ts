@@ -30,6 +30,44 @@ export interface LoginCredentials {
   password: string;
 }
 
+function readAuthUser(raw: Record<string, unknown>): AuthUser {
+  const u = (raw.user ?? raw) as Record<string, unknown>;
+  const firstName = u.firstName ?? u.first_name;
+  const lastName = u.lastName ?? u.last_name;
+  const email = String(u.email ?? raw.email ?? '');
+  const name = String(
+    u.name ??
+      ([firstName, lastName].filter(Boolean).join(' ') ||
+        email ||
+        'Utilizador UriGo'),
+  );
+
+  return {
+    id: String(u.id ?? ''),
+    name,
+    email,
+    phone: typeof u.phone === 'string' ? u.phone : undefined,
+    role: String(u.role ?? 'user'),
+    avatar: typeof u.avatar === 'string' ? u.avatar : undefined,
+    vendorSubtype: u.vendorSubtype as VendorSubtype | undefined,
+  };
+}
+
+/** Adapta respostas NestJS, Supabase Edge e outros formatos legados. */
+export function coerceAuthApiResponse(raw: Record<string, unknown>): {
+  accessToken: string;
+  user: AuthUser;
+} {
+  const accessToken = String(raw.accessToken ?? raw.access_token ?? raw.token ?? '');
+  const user = readAuthUser(raw);
+
+  if (!accessToken) {
+    throw new Error('Resposta de autenticação inválida');
+  }
+
+  return { accessToken, user };
+}
+
 export function buildAuthSession(
   accessToken: string,
   user: AuthUser,
@@ -49,18 +87,23 @@ export function buildAuthSession(
 
 /** Garante theme/role quando a API (ex. Supabase Edge) devolve só token + user. */
 export function normalizeAuthSession(
-  raw: Partial<AuthSession> & Pick<AuthSession, 'accessToken'> & { user: AuthUser },
+  raw: Record<string, unknown> | (Partial<AuthSession> & { user?: AuthUser }),
 ): AuthSession {
-  const built = buildAuthSession(raw.accessToken, raw.user);
+  const payload =
+    typeof raw === 'object' && raw !== null
+      ? (raw as Record<string, unknown>)
+      : {};
+  const { accessToken, user } = coerceAuthApiResponse(payload);
+  const built = buildAuthSession(accessToken, user);
+  const partial = raw as Partial<AuthSession>;
+
   return {
-    ...built,
-    ...raw,
-    accessToken: raw.accessToken,
-    user: raw.user,
-    role: raw.role ?? built.role,
-    permissions: raw.permissions ?? built.permissions,
-    theme: raw.theme?.primary ? raw.theme : built.theme,
-    modules: raw.modules ?? built.modules,
+    accessToken,
+    user,
+    role: partial.role ?? built.role,
+    permissions: partial.permissions ?? built.permissions,
+    theme: partial.theme?.primary ? partial.theme : built.theme,
+    modules: partial.modules ?? built.modules,
   };
 }
 

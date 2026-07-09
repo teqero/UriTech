@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { type AuthSession, type LoginCredentials, getProfileTheme, type AppProfileId } from '@uritech/shared';
+import { type AuthSession, type LoginCredentials, getProfileTheme, normalizeAuthSession, type AppProfileId } from '@uritech/shared';
 import { clearSession, getPostLoginPath, loadSession, saveSession } from '@/lib/auth';
 import { enableWebPush } from '@/lib/web-push';
 
@@ -25,8 +25,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const stored = loadSession();
     setSession(stored);
-    if (stored?.accessToken && stored.user) {
-      document.documentElement.style.setProperty('--profile-primary', stored.theme.primary);
+    if (stored) {
+      const theme = stored.theme ?? getProfileTheme(stored.role ?? 'customer');
+      document.documentElement.style.setProperty('--profile-primary', theme.primary);
       void enableWebPush(stored.accessToken);
     }
     setLoading(false);
@@ -42,11 +43,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.message || 'Credenciais inválidas');
     }
-    const data = (await res.json()) as AuthSession;
-    saveSession(data);
-    setSession(data);
-    void enableWebPush(data.accessToken);
-    router.replace(getPostLoginPath(data));
+    const data = (await res.json()) as Record<string, unknown>;
+    const session = normalizeAuthSession(data);
+    saveSession(session);
+    setSession(session);
+    void enableWebPush(session.accessToken);
+    router.replace(getPostLoginPath(session));
   }, [router]);
 
   const logout = useCallback(() => {
@@ -78,5 +80,5 @@ export function useAuth() {
 
 export function useProfileTheme() {
   const { profileId } = useAuth();
-  return profileId ? getProfileTheme(profileId) : getProfileTheme('customer');
+  return getProfileTheme(profileId ?? 'customer');
 }

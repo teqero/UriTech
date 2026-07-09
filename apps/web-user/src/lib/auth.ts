@@ -9,6 +9,11 @@ import {
   normalizeAuthSession,
 } from '@uritech/shared';
 
+function readStoredToken(parsed: Record<string, unknown>): string | null {
+  const token = parsed.accessToken ?? parsed.access_token ?? parsed.token;
+  return typeof token === 'string' && token.length > 0 ? token : null;
+}
+
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '') || 'http://localhost:4000/api/v1';
 
@@ -25,7 +30,7 @@ export async function loginRequest(credentials: LoginCredentials): Promise<AuthS
   return res.json();
 }
 
-export function saveSession(session: AuthSession) {
+export function saveSession(session: AuthSession | Record<string, unknown>) {
   if (typeof window === 'undefined') return;
   const normalized = normalizeAuthSession(session);
   localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(normalized));
@@ -38,9 +43,9 @@ export function loadSession(): AuthSession | null {
   const raw = localStorage.getItem(AUTH_STORAGE_KEY);
   if (!raw) return null;
   try {
-    const parsed = JSON.parse(raw) as Partial<AuthSession>;
-    if (!parsed.accessToken || !parsed.user) return null;
-    return normalizeAuthSession(parsed as AuthSession);
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    if (!readStoredToken(parsed) || !parsed.user) return null;
+    return normalizeAuthSession(parsed);
   } catch {
     return null;
   }
@@ -51,8 +56,9 @@ export function clearSession() {
   localStorage.removeItem(AUTH_STORAGE_KEY);
 }
 
-export function getPostLoginPath(session: AuthSession): string {
-  return getWebHomeRoute(session.role);
+export function getPostLoginPath(session: AuthSession | Record<string, unknown>): string {
+  const normalized = normalizeAuthSession(session);
+  return getWebHomeRoute(normalized.role);
 }
 
 export { API_BASE, buildAuthSession };

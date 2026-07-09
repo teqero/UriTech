@@ -3,9 +3,7 @@ import type { NextRequest } from 'next/server';
 import {
   AUTH_COOKIE,
   AUTH_COOKIE_MAX_AGE,
-  type AuthSession,
   type LoginCredentials,
-  type AuthUser,
   normalizeAuthSession,
 } from '@uritech/shared';
 
@@ -29,7 +27,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const raw = (await res.json()) as Partial<AuthSession> & { accessToken: string; user: AuthUser };
+  const raw = (await res.json()) as Record<string, unknown>;
   const session = normalizeAuthSession(raw);
   const response = NextResponse.json(session);
   response.cookies.set(AUTH_COOKIE, session.accessToken, {
