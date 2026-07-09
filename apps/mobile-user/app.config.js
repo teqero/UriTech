@@ -5,11 +5,7 @@ module.exports = () => {
   const googleMapsApiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ?? '';
 
   const plugins = [...appJson.expo.plugins];
-  if (googleMapsApiKey) {
-    plugins.push(['react-native-maps', { googleMapsApiKey }]);
-  } else {
-    plugins.push('react-native-maps');
-  }
+  // react-native-maps não tem config plugin Expo válido; chave Google só em android.config
 
   plugins.push([
     'expo-notifications',

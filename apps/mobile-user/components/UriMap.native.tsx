@@ -1,26 +1,15 @@
-import { createElement, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Image, Platform, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Image, StyleSheet, Text, View } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_DEFAULT } from 'react-native-maps';
-import type { Location } from '@uritech/shared';
 import {
   DEFAULT_ORIGIN,
   colors,
   estimateRideMinutes,
-  getMapEmbedUrl,
   getStaticMapUrl,
   previewDemoPlace,
 } from '@uritech/shared';
 import { fitMapRegion, useUserLocation } from '../lib/use-user-location';
-
-type Props = {
-  destinationLabel?: string;
-  origin?: Location;
-  destination?: Location;
-  height?: number;
-  flex?: boolean;
-  showUserLocation?: boolean;
-  markers?: Array<{ latitude: number; longitude: number; title?: string; pinColor?: string }>;
-};
+import type { UriMapProps } from './uri-map-types';
 
 export function UriMap({
   destinationLabel,
@@ -30,7 +19,7 @@ export function UriMap({
   flex = false,
   showUserLocation = true,
   markers = [],
-}: Props) {
+}: UriMapProps) {
   const destPlace = useMemo(() => {
     if (destinationProp) return destinationProp;
     return destinationLabel ? previewDemoPlace(destinationLabel) : undefined;
@@ -51,26 +40,6 @@ export function UriMap({
   const region = useMemo(() => fitMapRegion(routePoints), [routePoints]);
   const eta = destPlace ? estimateRideMinutes(originPoint, destPlace) : null;
   const wrapStyle = flex ? styles.flex : { height };
-
-  if (Platform.OS === 'web') {
-    const mapUrl = getMapEmbedUrl(originPoint, destPlace);
-    return (
-      <View style={[styles.wrap, wrapStyle]}>
-        {createElement('iframe', {
-          key: mapUrl,
-          title: 'Mapa',
-          src: mapUrl,
-          style: { width: '100%', height: '100%', border: 0 },
-        })}
-        {destPlace && eta != null && (
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>~{eta} min · {destPlace.district ?? destPlace.city}</Text>
-          </View>
-        )}
-      </View>
-    );
-  }
-
   const [mapReady, setMapReady] = useState(false);
   const staticUrl = getStaticMapUrl(originPoint, destPlace);
 
@@ -147,8 +116,7 @@ export function UriMap({
   );
 }
 
-/** @deprecated Use UriMap — mantido para compatibilidade */
-export function DemoMap(props: Props) {
+export function DemoMap(props: UriMapProps) {
   return <UriMap {...props} />;
 }
 

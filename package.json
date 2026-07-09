@@ -11,6 +11,7 @@
     "dev": "turbo run dev",
     "start:all": "powershell -ExecutionPolicy Bypass -File ./start-all.ps1",
     "start:all:kill": "powershell -ExecutionPolicy Bypass -File ./start-all.ps1 -KillPorts",
+    "deploy:mobile-web": "npx vercel link --project web-user --yes && npx vercel deploy --prod --yes --local-config apps/mobile-user/vercel.json",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "test": "turbo run test",

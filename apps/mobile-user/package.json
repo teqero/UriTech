@@ -9,6 +9,7 @@
     "dev:tunnel": "npm run build:shared && expo start --port 8084 --tunnel",
     "dev:usb": "npm run build:shared && expo start --port 8084 --localhost",
     "dev:web": "npm run build:shared && expo start --web --port 8084 --clear",
+    "build:web": "npm run build:shared && expo export --platform web",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web"

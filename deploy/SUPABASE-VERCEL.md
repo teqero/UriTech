@@ -35,18 +35,18 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key do dashboard Supabase>
 
 ### URLs de produção (activas)
 
-| App | URL |
-|-----|-----|
-| **Web User** | https://web-user-sooty.vercel.app |
+| App | URL | Notas |
+|-----|-----|-------|
+| **Mobile Web (principal)** | https://web-user-sooty.vercel.app | Expo `mobile-user` exportado para web |
+| **Web User (legado Next.js)** | — | substituído pelo mobile web no project `web-user` |
 | **Web Admin** | https://web-admin-three-xi.vercel.app |
 | **Dashboard Vercel** | https://vercel.com/teqeros-projects |
 
 ### Deploy manual (a partir da raiz do monorepo)
 
 ```bash
-# Web User
-npx vercel link --project web-user --yes
-npx vercel deploy --prod --yes --local-config apps/web-user/vercel.json
+# Mobile Web (app principal — project Vercel web-user)
+npm run deploy:mobile-web
 
 # Web Admin
 npx vercel link --project web-admin --yes
