@@ -9,7 +9,8 @@ export async function apiFetch(path: string, init: RequestInit = {}): Promise<Re
     const raw = localStorage.getItem(AUTH_STORAGE_KEY);
     if (raw) {
       try {
-        token = (JSON.parse(raw) as AuthSession).accessToken ?? null;
+        const session = JSON.parse(raw) as AuthSession & { access_token?: string };
+        token = session.accessToken ?? session.access_token ?? null;
       } catch {
         token = null;
       }
