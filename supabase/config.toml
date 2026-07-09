@@ -1,0 +1,7 @@
+# UriTech — Supabase project: SecurePay (akyzbuvdokdrjpuzhocg)
+# Dashboard: https://supabase.com/dashboard/project/akyzbuvdokdrjpuzhocg
+
+project_id = "akyzbuvdokdrjpuzhocg"
+
+[api]
+enabled = true

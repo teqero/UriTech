@@ -1,0 +1,21 @@
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY package.json package-lock.json* ./
+COPY turbo.json ./
+COPY packages/shared packages/shared
+COPY apps/web-user apps/web-user
+ARG NEXT_PUBLIC_API_URL=http://localhost/api/v1
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+RUN npm ci --workspace=@uritech/shared --workspace=@uritech/web-user --include-workspace-root
+RUN npm run build --workspace=@uritech/shared
+RUN npm run build --workspace=@uritech/web-user
+
+FROM node:20-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+ENV PORT=3001
+ENV HOSTNAME=0.0.0.0
+COPY --from=builder /app/apps/web-user/.next/standalone ./
+COPY --from=builder /app/apps/web-user/.next/static ./apps/web-user/.next/static
+EXPOSE 3001
+CMD ["node", "apps/web-user/server.js"]

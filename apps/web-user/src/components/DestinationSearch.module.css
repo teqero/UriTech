@@ -1,0 +1,144 @@
+.heroWrap {
+  position: relative;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.inlineWrap {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.searchBox {
+  display: flex;
+  background: var(--white);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.inlineBox {
+  display: flex;
+  border: 1px solid var(--gray-100);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--white);
+}
+
+.searchBox input,
+.inlineBox input {
+  flex: 1;
+  padding: 16px 20px;
+  border: none;
+  font-size: 16px;
+  outline: none;
+  color: var(--black);
+}
+
+.searchBox button,
+.inlineBox button {
+  background: var(--primary);
+  color: var(--white);
+  padding: 16px 28px;
+  font-weight: 700;
+  font-size: 14px;
+  border: none;
+  cursor: pointer;
+}
+
+.suggestions {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 6px);
+  background: var(--white);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  z-index: 50;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.suggestion,
+.suggestionActive {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  padding: 12px 14px;
+  border: none;
+  background: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.suggestion:hover,
+.suggestionActive {
+  background: var(--primary-light, #e8f9ea);
+}
+
+.suggestion strong,
+.suggestionActive strong {
+  display: block;
+  font-size: 14px;
+  color: var(--black);
+}
+
+.suggestion small,
+.suggestionActive small {
+  display: block;
+  font-size: 12px;
+  color: var(--gray-500);
+  margin-top: 2px;
+}
+
+.pin {
+  font-size: 18px;
+}
+
+.previewChip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 10px;
+  text-align: left;
+}
+
+.previewPin {
+  font-size: 18px;
+}
+
+.previewChip strong {
+  display: block;
+  font-size: 13px;
+  color: var(--black);
+}
+
+.previewChip small {
+  display: block;
+  font-size: 11px;
+  color: var(--gray-500);
+  margin-top: 2px;
+}
+
+.suggestionsLabel {
+  padding: 8px 14px 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.originHint {
+  margin-top: 10px;
+  font-size: 12px;
+  opacity: 0.85;
+  text-align: left;
+}

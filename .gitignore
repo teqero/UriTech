@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build
+dist/
+build/
+.next/
+out/
+.turbo/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Expo
+.expo/
+*.jks
+*.p8
+*.p12
+*.mobileprovision
+
+# Database
+*.db
+prisma/migrations/
+
+# Testing
+coverage/
+
+.vercel
+.env*

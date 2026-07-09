@@ -1,0 +1,14 @@
+{
+  "expo": {
+    "name": "UriTech Vendor",
+    "slug": "uritech-vendor",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "uritech-vendor",
+    "userInterfaceStyle": "light",
+    "splash": { "backgroundColor": "#EE2737" },
+    "ios": { "bundleIdentifier": "com.uritech.vendor" },
+    "android": { "package": "com.uritech.vendor", "adaptiveIcon": { "backgroundColor": "#EE2737" } },
+    "plugins": ["expo-router"]
+  }
+}

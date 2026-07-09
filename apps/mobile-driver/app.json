@@ -1,0 +1,14 @@
+{
+  "expo": {
+    "name": "UriTech Driver",
+    "slug": "uritech-driver",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "uritech-driver",
+    "userInterfaceStyle": "light",
+    "splash": { "backgroundColor": "#1A73E8" },
+    "ios": { "bundleIdentifier": "com.uritech.driver" },
+    "android": { "package": "com.uritech.driver", "adaptiveIcon": { "backgroundColor": "#1A73E8" } },
+    "plugins": ["expo-router"]
+  }
+}

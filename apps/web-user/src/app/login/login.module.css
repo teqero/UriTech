@@ -1,0 +1,103 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(160deg, #e8f5e9 0%, #fff 50%);
+  padding: 24px;
+}
+
+.card {
+  width: 100%;
+  max-width: 420px;
+  background: #fff;
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+}
+
+.card h1 {
+  font-size: 28px;
+  font-weight: 800;
+  margin: 0 0 8px;
+}
+
+.sub {
+  color: #737373;
+  margin: 0 0 24px;
+  font-size: 14px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #525252;
+}
+
+.form input {
+  padding: 12px 14px;
+  border: 1px solid #e5e5e5;
+  border-radius: 10px;
+  font-size: 15px;
+}
+
+.form button[type='submit'] {
+  margin-top: 8px;
+  padding: 14px;
+  border: none;
+  border-radius: 10px;
+  background: var(--profile-primary, #00aa13);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.error {
+  color: #d32f2f;
+  font-size: 13px;
+  margin: 0;
+}
+
+.demos {
+  margin-top: 24px;
+  border-top: 1px solid #f0f0f0;
+  padding-top: 16px;
+}
+
+.demos p {
+  font-size: 12px;
+  color: #737373;
+  margin: 0 0 8px;
+}
+
+.demoBtn {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  margin-bottom: 6px;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  background: #fafafa;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.guest {
+  margin-top: 16px;
+  width: 100%;
+  background: none;
+  border: none;
+  color: #00aa13;
+  font-weight: 600;
+  cursor: pointer;
+}

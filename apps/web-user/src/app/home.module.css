@@ -1,0 +1,352 @@
+.app {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100vh;
+  background: var(--white);
+  position: relative;
+  padding-bottom: 80px;
+}
+
+.header {
+  background: var(--primary);
+  padding: 16px 20px 24px;
+  border-radius: 0 0 24px 24px;
+}
+
+.headerTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logoIcon {
+  width: 32px;
+  height: 32px;
+  background: var(--white);
+  color: var(--primary);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.logoText {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--white);
+}
+
+.headerActions {
+  display: flex;
+  gap: 8px;
+}
+
+.iconBtn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--white);
+}
+
+.locationBar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  color: var(--white);
+}
+
+.locationIcon {
+  flex-shrink: 0;
+}
+
+.locationLabel {
+  display: block;
+  font-size: 11px;
+  opacity: 0.8;
+}
+
+.locationValue {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.searchBar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--white);
+  border-radius: 12px;
+  padding: 12px 16px;
+  color: var(--gray-500);
+}
+
+.searchBar input {
+  border: none;
+  outline: none;
+  font-size: 14px;
+  width: 100%;
+  color: var(--black);
+}
+
+.main {
+  padding: 20px;
+}
+
+.promoSection {
+  margin-bottom: 24px;
+}
+
+.promoCarousel {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.promoCarousel::-webkit-scrollbar {
+  display: none;
+}
+
+.promoCard {
+  min-width: 280px;
+  height: 120px;
+  border-radius: 16px;
+  padding: 20px;
+  scroll-snap-align: start;
+  display: flex;
+  align-items: center;
+}
+
+.promoContent h3 {
+  color: var(--white);
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.promoContent p {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 13px;
+}
+
+.sectionTitle {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.servicesSection {
+  margin-bottom: 24px;
+}
+
+.servicesGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.serviceCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 4px;
+  border-radius: 12px;
+  transition: background 0.2s;
+}
+
+.serviceCard:hover {
+  background: var(--gray-50);
+}
+
+.serviceIcon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.serviceName {
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.rideSection {
+  margin-bottom: 24px;
+}
+
+.rideCard {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--white);
+}
+
+.rideInfo h3 {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.rideInfo p {
+  font-size: 13px;
+  opacity: 0.9;
+}
+
+.rideBtn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--white);
+  color: var(--primary);
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.restaurantsSection {
+  margin-bottom: 24px;
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.seeAll {
+  font-size: 13px;
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.restaurantList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.restaurantCard {
+  display: flex;
+  gap: 14px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--gray-100);
+  transition: box-shadow 0.2s;
+}
+
+.restaurantCard:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.restaurantImage {
+  width: 72px;
+  height: 72px;
+  border-radius: 12px;
+  background: var(--gray-50);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  flex-shrink: 0;
+}
+
+.restaurantInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.restaurantInfo h4 {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.restaurantMeta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--gray-500);
+}
+
+.rating {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--black);
+  font-weight: 600;
+}
+
+.categoryBadge {
+  background: var(--gray-50);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.bottomNav {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 480px;
+  background: var(--white);
+  border-top: 1px solid var(--gray-100);
+  display: flex;
+  justify-content: space-around;
+  padding: 8px 0 12px;
+  z-index: 100;
+}
+
+.navItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: var(--gray-500);
+  font-weight: 500;
+  padding: 4px 12px;
+}
+
+.navItem span:first-child {
+  font-size: 20px;
+}
+
+.navItemActive {
+  color: var(--primary);
+}
+
+@media (min-width: 481px) {
+  .app {
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.1);
+  }
+}

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>UriGo — Ligar Expo Go</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 480px; margin: 24px auto; padding: 20px; line-height: 1.5; }
+    h1 { font-size: 1.25rem; color: #00AA13; }
+    h2 { font-size: 1rem; margin-top: 24px; }
+    img { margin: 12px 0; border: 8px solid #f0f0f0; border-radius: 12px; display: block; margin-left: auto; margin-right: auto; }
+    code { background: #f5f5f5; padding: 8px 12px; border-radius: 8px; display: block; margin: 8px 0; word-break: break-all; font-size: 13px; }
+    ol { padding-left: 20px; }
+    .warn { color: #b45309; font-size: 13px; background: #fffbeb; padding: 12px; border-radius: 8px; border: 1px solid #fcd34d; }
+    .ok { color: #047857; font-size: 13px; background: #ecfdf5; padding: 12px; border-radius: 8px; border: 1px solid #6ee7b7; }
+  </style>
+</head>
+<body>
+  <h1>UriGo — Expo Go (Android)</h1>
+
+  <div class="warn">
+    <strong>Importante:</strong> corre sempre a partir de <code>apps/mobile-user</code>, não da raiz do projeto.<br>
+    <code>cd apps/mobile-user && npm run dev</code>
+  </div>
+
+  <h2>Opção A — Wi‑Fi (mesma rede)</h2>
+  <p>Telemóvel e PC na mesma Wi‑Fi. IP do PC:</p>
+  <img width="220" height="220" alt="QR Wi-Fi" src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=exp://192.168.0.62:8084" />
+  <code>exp://192.168.0.62:8084</code>
+  <p>Se der <em>Failed to download remote update</em>, abre o <strong>Firewall</strong> (PowerShell como Admin):</p>
+  <code>netsh advfirewall firewall add rule name="Expo Metro 8084" dir=in action=allow protocol=TCP localport=8084</code>
+
+  <h2>Opção B — USB (telefone ligado por cabo)</h2>
+  <div class="ok">
+    Telefone detectado: liga USB + Depuração USB, depois no PC:
+    <code>adb reverse tcp:8084 tcp:8084</code>
+    Inicia o Expo em modo USB:
+    <code>cd apps/mobile-user && npx expo start --port 8084 --localhost</code>
+    No Expo Go → <strong>Enter URL manually</strong>:
+    <code>exp://127.0.0.1:8084</code>
+  </div>
+  <img width="220" height="220" alt="QR USB localhost" src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=exp://127.0.0.1:8084" />
+
+  <h2>Opção C — Tunnel (pode falhar no Windows)</h2>
+  <code>cd apps/mobile-user && npm run dev:tunnel</code>
+  <p>Se <em>ngrok tunnel took too long</em>, usa Opção A ou B.</p>
+
+  <ol>
+    <li>Expo Go SDK <strong>54</strong></li>
+    <li>Scan QR ou Enter URL manually</li>
+    <li>Fecha a app antes de tentar de novo</li>
+  </ol>
+</body>
+</html>

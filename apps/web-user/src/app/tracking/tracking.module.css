@@ -1,0 +1,160 @@
+.layout {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.steps {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.step {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.stepActive,
+.stepDot {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  margin: 0 auto 8px;
+  color: white;
+}
+
+.stepActive {
+  background: var(--primary);
+}
+
+.stepDot {
+  background: var(--gray-100);
+  color: var(--gray-500);
+}
+
+.routeCard {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 16px 0;
+  padding: 16px;
+  border: 1px solid var(--gray-100);
+  border-radius: 12px;
+}
+
+.routeLabel {
+  font-size: 11px;
+  color: var(--gray-500);
+  margin-bottom: 4px;
+}
+
+.routeValue {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.etaBlock {
+  text-align: center;
+  margin: 24px 0;
+}
+
+.etaValue {
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.etaHint {
+  color: var(--gray-500);
+  margin-top: 4px;
+}
+
+.driverCard {
+  display: flex;
+  gap: 16px;
+  padding: 20px;
+  border: 1px solid var(--gray-100);
+  border-radius: 16px;
+  margin-bottom: 24px;
+}
+
+.driverAvatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.driverName {
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.driverMeta {
+  font-size: 13px;
+  color: var(--gray-500);
+  margin-top: 4px;
+}
+
+.summary {
+  background: var(--gray-50);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.summary h3 {
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.summaryRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--gray-100);
+  font-size: 14px;
+}
+
+.summaryRow span:first-child {
+  color: var(--gray-500);
+}
+
+.summaryRow span:last-child {
+  font-weight: 600;
+}
+
+.primaryBtn {
+  display: block;
+  background: var(--primary);
+  color: white;
+  padding: 16px;
+  border-radius: 12px;
+  text-align: center;
+  font-weight: 700;
+  margin-top: 8px;
+}
+
+.secondaryBtn {
+  display: block;
+  border: 1px solid var(--gray-100);
+  color: var(--gray-700);
+  padding: 14px;
+  border-radius: 12px;
+  text-align: center;
+  font-weight: 600;
+}
