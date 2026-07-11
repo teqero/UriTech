@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { colors, spacing, borderRadius } from '@uritech/shared';
 
 const VENDOR_RED = '#EE2737';
@@ -24,7 +24,10 @@ export default function VendorProfileScreen() {
           </View>
         ))}
       </View>
-      <TouchableOpacity style={styles.editBtn}>
+      <TouchableOpacity
+        style={styles.editBtn}
+        onPress={() => Alert.alert('Editar loja', 'Contacte o suporte UriGo para alterar dados da loja.', [{ text: 'OK' }])}
+      >
         <Text style={styles.editText}>Editar Informações da Loja</Text>
       </TouchableOpacity>
     </View>

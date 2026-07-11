@@ -8,6 +8,7 @@ import { routes } from '../../lib/navigation';
 import { fetchWallet, txIcon } from '../../lib/wallet-api';
 
 const QUICK_ACTIONS = [
+  { label: 'Pagar Produto', icon: 'link' as const, route: '/pagar-produto', featured: true },
   { label: 'Carregar', icon: 'add' as const, route: '/carregar-wallet' },
   { label: 'Transferir', icon: 'swap-horizontal' as const, route: '/transferir-wallet' },
   { label: 'Sacar', icon: 'wallet-outline' as const, route: '/sacar-wallet' },
@@ -54,6 +55,7 @@ export default function PaymentScreen() {
   }, [load]);
 
   const methods = PAYMENT_METHODS.filter((m) => m.type !== 'wallet');
+  const [selectedMethod, setSelectedMethod] = useState(methods[0]?.id ?? '');
 
   return (
     <View style={styles.container}>
@@ -85,32 +87,46 @@ export default function PaymentScreen() {
           {QUICK_ACTIONS.map((action) => (
             <TouchableOpacity
               key={action.label}
-              style={styles.quickAction}
+              style={[styles.quickAction, 'featured' in action && action.featured ? styles.quickActionFeatured : undefined]}
               onPress={() => router.push(action.route as never)}
             >
-              <View style={styles.quickActionIcon}>
-                <Ionicons name={action.icon} size={22} color={colors.black} />
+              <View style={[styles.quickActionIcon, 'featured' in action && action.featured ? styles.quickActionIconFeatured : undefined]}>
+                <Ionicons name={action.icon} size={22} color={'featured' in action && action.featured ? colors.white : colors.black} />
               </View>
-              <Text style={styles.quickActionLabel}>{action.label}</Text>
+              <Text style={[styles.quickActionLabel, 'featured' in action && action.featured ? styles.quickActionLabelFeatured : undefined]}>{action.label}</Text>
             </TouchableOpacity>
           ))}
         </View>
 
+        <TouchableOpacity
+          style={styles.payByLinkBanner}
+          onPress={() => router.push('/pagar-produto' as never)}
+          activeOpacity={0.9}
+        >
+          <View style={styles.payByLinkLeft}>
+            <Text style={styles.payByLinkBadge}>NOVO</Text>
+            <Text style={styles.payByLinkTitle}>Pagar Produto por Link</Text>
+            <Text style={styles.payByLinkSub}>Cole o link do Facebook, Instagram, OLX ou qualquer rede social.</Text>
+          </View>
+          <Ionicons name="arrow-forward-circle" size={36} color={colors.white} />
+        </TouchableOpacity>
+
         <Text style={styles.sectionTitle}>Métodos de Pagamento</Text>
-        {methods.map((method, index) => (
+        {methods.map((method) => (
           <TouchableOpacity
             key={method.id}
-            style={[styles.methodCard, index === 0 && styles.methodSelected]}
+            style={[styles.methodCard, selectedMethod === method.id && styles.methodSelected]}
+            onPress={() => setSelectedMethod(method.id)}
           >
             <View style={styles.methodIcon}>
               <Ionicons name="card-outline" size={18} color={colors.primary} />
             </View>
             <Text style={styles.methodLabel}>{method.label}</Text>
-            <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
+            <Ionicons name={selectedMethod === method.id ? 'checkmark-circle' : 'ellipse-outline'} size={20} color={colors.primary} />
           </TouchableOpacity>
         ))}
 
-        <TouchableOpacity style={styles.addMethod}>
+        <TouchableOpacity style={styles.addMethod} onPress={() => router.push('/carregar-wallet' as never)}>
           <Ionicons name="add" size={18} color={colors.primary} />
           <Text style={styles.addMethodText}>Adicionar novo método</Text>
         </TouchableOpacity>
@@ -182,7 +198,7 @@ const styles = StyleSheet.create({
   walletMask: { fontSize: 13, color: 'rgba(255,255,255,0.65)', fontWeight: '500' },
   walletSub: { fontSize: 13, color: 'rgba(255,255,255,0.7)' },
   walletBalance: { fontSize: 36, fontWeight: '700', color: colors.white, marginTop: 4 },
-  quickActions: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing['2xl'] },
+  quickActions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start', marginBottom: spacing['2xl'], gap: spacing.sm },
   quickAction: { alignItems: 'center', width: 78 },
   quickActionIcon: {
     width: 56,
@@ -196,6 +212,33 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   quickActionLabel: { fontSize: 13, fontWeight: '500', color: colors.black },
+  quickActionFeatured: { width: 72 },
+  quickActionIconFeatured: { backgroundColor: '#6C63FF', borderColor: '#6C63FF' },
+  quickActionLabelFeatured: { color: '#6C63FF', fontWeight: '700' },
+  payByLinkBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#6C63FF',
+    borderRadius: borderRadius.xl,
+    padding: spacing.xl,
+    marginBottom: spacing['2xl'],
+    gap: spacing.md,
+  },
+  payByLinkLeft: { flex: 1 },
+  payByLinkBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: colors.secondary,
+    color: colors.white,
+    fontSize: 10,
+    fontWeight: '800',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginBottom: 6,
+    overflow: 'hidden',
+  },
+  payByLinkTitle: { color: colors.white, fontSize: 17, fontWeight: '800', marginBottom: 4 },
+  payByLinkSub: { color: 'rgba(255,255,255,0.85)', fontSize: 12, lineHeight: 17 },
   sectionTitle: { fontSize: 18, fontWeight: '700', marginBottom: spacing.md, color: colors.black },
   methodCard: {
     flexDirection: 'row',

@@ -5,8 +5,7 @@ import {
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, borderRadius, formatCurrency } from '@uritech/shared';
-import { navigateTo } from '../lib/navigation';
-import { confirmServiceOrder } from '../lib/service-checkout';
+import { announceMarketplaceListing, openMarketplaceListing } from '../lib/ui-actions';
 import {
   type MarketplaceTab,
   type MarketplaceFilters,
@@ -153,18 +152,7 @@ export default function MarketplaceScreen() {
             <TouchableOpacity
               key={item.id}
               style={styles.listingCard}
-              onPress={() => {
-                if (tabKey === 'itens') {
-                  navigateTo('/securepay');
-                } else {
-                  void confirmServiceOrder({
-                    service: tabKey === 'carros' ? 'carros' : 'imoveis',
-                    dest: item.title,
-                    label: item.title,
-                    amount: item.price,
-                  });
-                }
-              }}
+              onPress={() => openMarketplaceListing(item, tabKey)}
             >
               <View style={styles.listingImage}>
                 <Text style={{ fontSize: 40 }}>{item.icon}</Text>
@@ -189,7 +177,10 @@ export default function MarketplaceScreen() {
           ))
         )}
 
-        <TouchableOpacity style={styles.announceBtn}>
+        <TouchableOpacity
+          style={styles.announceBtn}
+          onPress={() => announceMarketplaceListing(TABS[activeTab], tabKey)}
+        >
           <Text style={styles.announceText}>ANUNCIAR</Text>
         </TouchableOpacity>
       </ScrollView>

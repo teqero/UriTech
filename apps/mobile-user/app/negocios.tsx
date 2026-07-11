@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,6 +17,16 @@ const BIZ_ROUTES: Record<string, string> = {
 const CATEGORIES = ['Restaurantes', 'Salões', 'Cafés', 'Ginásios', 'Eventos', 'Spas'];
 
 export default function NegociosScreen() {
+  const [query, setQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
+  const businesses = NEARBY_BUSINESSES.filter((biz) => {
+    const matchesCategory = !selectedCategory || biz.category === selectedCategory;
+    const q = query.trim().toLowerCase();
+    const matchesQuery = !q || biz.name.toLowerCase().includes(q) || biz.category.toLowerCase().includes(q);
+    return matchesCategory && matchesQuery;
+  });
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -25,15 +36,26 @@ export default function NegociosScreen() {
       </View>
       <View style={styles.searchBar}>
         <Ionicons name="search" size={18} color={colors.gray500} />
-        <TextInput placeholder="Procurar por categoria ou nome..." style={styles.searchInput} />
+        <TextInput
+          placeholder="Procurar por categoria ou nome..."
+          style={styles.searchInput}
+          value={query}
+          onChangeText={setQuery}
+        />
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categories}>
         {CATEGORIES.map((cat) => (
-          <TouchableOpacity key={cat} style={styles.categoryChip}><Text style={styles.categoryText}>{cat}</Text></TouchableOpacity>
+          <TouchableOpacity
+            key={cat}
+            style={[styles.categoryChip, selectedCategory === cat && styles.categoryChipActive]}
+            onPress={() => setSelectedCategory((prev) => (prev === cat ? null : cat))}
+          >
+            <Text style={[styles.categoryText, selectedCategory === cat && styles.categoryTextActive]}>{cat}</Text>
+          </TouchableOpacity>
         ))}
       </ScrollView>
       <ScrollView style={styles.content}>
-        {NEARBY_BUSINESSES.map((biz) => (
+        {businesses.map((biz) => (
           <TouchableOpacity
             key={biz.name}
             style={styles.bizCard}
@@ -63,8 +85,10 @@ const styles = StyleSheet.create({
   searchBar: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.white, margin: spacing.xl, marginBottom: spacing.md, padding: spacing.md, borderRadius: borderRadius.lg },
   searchInput: { flex: 1, fontSize: 14 },
   categories: { paddingHorizontal: spacing.xl, marginBottom: spacing.md },
-  categoryChip: { backgroundColor: colors.white, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderRadius: borderRadius.full, marginRight: spacing.sm },
+  categoryChip: { backgroundColor: colors.white, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderRadius: borderRadius.full, marginRight: spacing.sm, borderWidth: 1, borderColor: colors.gray100 },
+  categoryChipActive: { backgroundColor: colors.primaryLight, borderColor: colors.primary },
   categoryText: { fontSize: 13, fontWeight: '600' },
+  categoryTextActive: { color: colors.primary },
   content: { flex: 1, paddingHorizontal: spacing.xl },
   bizCard: { backgroundColor: colors.white, borderRadius: borderRadius.lg, padding: spacing.lg, marginBottom: spacing.md },
   bizHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },

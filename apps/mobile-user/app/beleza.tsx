@@ -23,12 +23,16 @@ const PET_CATEGORIES = ['Banho', 'Tosa', 'Veterinário', 'Passeio', 'Hotel'];
 export default function BelezaScreen() {
   const { tab } = useLocalSearchParams<{ tab?: string }>();
   const [activeTab, setActiveTab] = useState<'beleza' | 'pet'>(tab === 'pet' ? 'pet' : 'beleza');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   useEffect(() => {
     if (tab === 'pet') setActiveTab('pet');
   }, [tab]);
 
-  const list = activeTab === 'pet' ? PET_SERVICES : SPECIALISTS;
+  const list = (activeTab === 'pet' ? PET_SERVICES : SPECIALISTS).filter((spec) => {
+    if (!selectedCategory) return true;
+    return spec.service.toLowerCase().includes(selectedCategory.toLowerCase());
+  });
   const categories = activeTab === 'pet' ? PET_CATEGORIES : CATEGORIES;
 
   const book = (name: string, price: number) => {
@@ -53,13 +57,19 @@ export default function BelezaScreen() {
       <View style={styles.tabs}>
         <TouchableOpacity
           style={[styles.tab, activeTab === 'beleza' && styles.tabActive]}
-          onPress={() => setActiveTab('beleza')}
+          onPress={() => {
+            setActiveTab('beleza');
+            setSelectedCategory(null);
+          }}
         >
           <Text style={activeTab === 'beleza' ? styles.tabTextActive : styles.tabText}>Beleza</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tab, activeTab === 'pet' && styles.tabActive]}
-          onPress={() => setActiveTab('pet')}
+          onPress={() => {
+            setActiveTab('pet');
+            setSelectedCategory(null);
+          }}
         >
           <Text style={activeTab === 'pet' ? styles.tabTextActive : styles.tabText}>Pet Care</Text>
         </TouchableOpacity>
@@ -68,8 +78,12 @@ export default function BelezaScreen() {
       <ScrollView style={styles.content}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categories}>
           {categories.map((cat) => (
-            <TouchableOpacity key={cat} style={styles.categoryChip}>
-              <Text style={styles.categoryText}>{cat}</Text>
+            <TouchableOpacity
+              key={cat}
+              style={[styles.categoryChip, selectedCategory === cat && styles.categoryChipActive]}
+              onPress={() => setSelectedCategory((prev) => (prev === cat ? null : cat))}
+            >
+              <Text style={[styles.categoryText, selectedCategory === cat && styles.categoryTextActive]}>{cat}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -108,8 +122,10 @@ const styles = StyleSheet.create({
   tabTextActive: { fontSize: 14, fontWeight: '700', color: '#E91E8C' },
   content: { flex: 1, padding: spacing.xl },
   categories: { marginBottom: spacing.xl },
-  categoryChip: { backgroundColor: colors.white, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderRadius: borderRadius.full, marginRight: spacing.sm },
+  categoryChip: { backgroundColor: colors.white, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderRadius: borderRadius.full, marginRight: spacing.sm, borderWidth: 1, borderColor: colors.gray100 },
+  categoryChipActive: { backgroundColor: '#FCE4EC', borderColor: '#E91E8C' },
   categoryText: { fontSize: 13, fontWeight: '600' },
+  categoryTextActive: { color: '#E91E8C' },
   sectionTitle: { fontSize: 16, fontWeight: '700', marginBottom: spacing.lg },
   specCard: { flexDirection: 'row', backgroundColor: colors.white, borderRadius: borderRadius.lg, padding: spacing.lg, marginBottom: spacing.md },
   specInfo: { flex: 1 },

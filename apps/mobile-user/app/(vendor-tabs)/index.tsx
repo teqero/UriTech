@@ -9,6 +9,7 @@ const VENDOR_RED = '#EE2737';
 
 export default function VendorDashboardScreen() {
   const [orders, setOrders] = useState<VendorOrder[]>(INITIAL_VENDOR_ORDERS);
+  const [isOpen, setIsOpen] = useState(true);
 
   const load = useCallback(async () => {
     try {
@@ -40,8 +41,11 @@ export default function VendorDashboardScreen() {
             <Text style={styles.storeName}>Kero Kilamba</Text>
             <Text style={styles.role}>Gestor da Loja</Text>
           </View>
-          <TouchableOpacity style={styles.openBadge}>
-            <Text style={styles.openText}>ABERTO</Text>
+          <TouchableOpacity
+            style={[styles.openBadge, !isOpen && styles.closedBadge]}
+            onPress={() => setIsOpen((v) => !v)}
+          >
+            <Text style={styles.openText}>{isOpen ? 'ABERTO' : 'FECHADO'}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -100,6 +104,7 @@ const styles = StyleSheet.create({
   storeName: { color: colors.white, fontSize: 22, fontWeight: '700' },
   role: { color: 'rgba(255,255,255,0.8)', fontSize: 13, marginTop: 4 },
   openBadge: { backgroundColor: colors.primary, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6 },
+  closedBadge: { backgroundColor: colors.gray500 },
   openText: { color: colors.white, fontWeight: '700', fontSize: 11 },
   statsRow: { flexDirection: 'row', padding: spacing.xl, gap: spacing.sm },
   statCard: { flex: 1, backgroundColor: colors.white, borderRadius: borderRadius.lg, padding: spacing.md, alignItems: 'center' },

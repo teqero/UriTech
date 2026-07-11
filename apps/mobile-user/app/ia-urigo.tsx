@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, borderRadius } from '@uritech/shared';
@@ -37,7 +37,12 @@ export default function IaUriGoScreen() {
         </View>
 
         {AI_FEATURES.map((feature) => (
-          <View key={feature.title} style={styles.featureCard}>
+          <TouchableOpacity
+            key={feature.title}
+            style={styles.featureCard}
+            onPress={() => Alert.alert(feature.title, feature.desc, [{ text: 'OK' }])}
+            activeOpacity={0.85}
+          >
             <View style={styles.featureHeader}>
               <Text style={styles.featureTitle}>{feature.title}</Text>
               <View style={[styles.featureBadge, { backgroundColor: `${feature.color}20` }]}>
@@ -45,7 +50,7 @@ export default function IaUriGoScreen() {
               </View>
             </View>
             <Text style={styles.featureDesc}>{feature.desc}</Text>
-          </View>
+          </TouchableOpacity>
         ))}
       </ScrollView>
     </View>

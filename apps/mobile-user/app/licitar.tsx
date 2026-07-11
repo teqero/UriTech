@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,6 +15,7 @@ const CATEGORIES = ['Canalização', 'Electricidade', 'Pintura', 'Reparações']
 
 export default function LicitarScreen() {
   const { service } = useLocalSearchParams<{ service?: string }>();
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   return (
     <View style={styles.container}>
@@ -28,7 +30,13 @@ export default function LicitarScreen() {
         <TextInput style={styles.input} placeholder="Título da tarefa (ex: Reparar torneira)" defaultValue={service ?? ''} />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categories}>
           {CATEGORIES.map((cat) => (
-            <TouchableOpacity key={cat} style={styles.categoryChip}><Text style={styles.categoryText}>{cat}</Text></TouchableOpacity>
+            <TouchableOpacity
+              key={cat}
+              style={[styles.categoryChip, selectedCategory === cat && styles.categoryChipActive]}
+              onPress={() => setSelectedCategory((prev) => (prev === cat ? null : cat))}
+            >
+              <Text style={[styles.categoryText, selectedCategory === cat && styles.categoryTextActive]}>{cat}</Text>
+            </TouchableOpacity>
           ))}
         </ScrollView>
         <TextInput style={styles.textArea} placeholder="Descrição detalhada..." multiline />
@@ -49,8 +57,8 @@ export default function LicitarScreen() {
           style={styles.primaryBtn}
           onPress={() => void confirmServiceOrder({
             service: 'licitar',
-            dest: service ?? 'Licitação',
-            label: 'Licitar serviço',
+            dest: selectedCategory ?? service ?? 'Licitação',
+            label: selectedCategory ? `Licitar — ${selectedCategory}` : 'Licitar serviço',
             amount: 8000,
           })}
         >
@@ -92,8 +100,10 @@ const styles = StyleSheet.create({
   input: { borderWidth: 1, borderColor: colors.gray100, borderRadius: borderRadius.lg, padding: spacing.md, fontSize: 15, backgroundColor: colors.white, marginBottom: spacing.md },
   textArea: { borderWidth: 1, borderColor: colors.gray100, borderRadius: borderRadius.lg, padding: spacing.md, fontSize: 15, backgroundColor: colors.white, minHeight: 80, marginBottom: spacing.md, textAlignVertical: 'top' },
   categories: { marginBottom: spacing.md },
-  categoryChip: { backgroundColor: colors.white, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderRadius: borderRadius.full, marginRight: spacing.sm },
+  categoryChip: { backgroundColor: colors.white, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderRadius: borderRadius.full, marginRight: spacing.sm, borderWidth: 1, borderColor: colors.gray100 },
+  categoryChipActive: { backgroundColor: colors.primaryLight, borderColor: colors.primary },
   categoryText: { fontSize: 13, fontWeight: '600' },
+  categoryTextActive: { color: colors.primary },
   row: { flexDirection: 'row', gap: spacing.md },
   half: { flex: 1 },
   label: { fontSize: 13, color: colors.gray500, marginBottom: 6 },

@@ -9,8 +9,9 @@ import { InsurerEntity } from './entities/insurer.entity';
 import { ClaimEvidenceEntity } from './entities/claim-evidence.entity';
 import { WalletEntity } from './entities/wallet.entity';
 import { WalletTransactionEntity } from './entities/wallet-transaction.entity';
+import { SocialPaymentEntity } from './entities/social-payment.entity';
 
-const ENTITIES = [UserEntity, RideEntity, OrderEntity, InsurerEntity, ClaimEvidenceEntity, WalletEntity, WalletTransactionEntity];
+const ENTITIES = [UserEntity, RideEntity, OrderEntity, InsurerEntity, ClaimEvidenceEntity, WalletEntity, WalletTransactionEntity, SocialPaymentEntity];
 
 @Global()
 @Module({})

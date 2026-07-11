@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { APP_NAME, PHONE_PREFIX, colors, spacing, borderRadius } from '@uritech/shared';
 
@@ -33,10 +33,16 @@ export default function LoginScreen() {
 
         <Text style={styles.divider}>ou entrar com</Text>
 
-        <TouchableOpacity style={styles.socialBtn}>
+        <TouchableOpacity style={styles.socialBtn} onPress={() => router.push('/(auth)/signin')}>
           <Text style={styles.socialText}>Continuar com Google</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.socialBtn}>
+        <TouchableOpacity
+          style={styles.socialBtn}
+          onPress={() => Alert.alert('Facebook', 'Login social em breve. Use e-mail por agora.', [
+            { text: 'Entrar com e-mail', onPress: () => router.push('/(auth)/signin') },
+            { text: 'OK' },
+          ])}
+        >
           <Text style={styles.socialText}>Continuar com Facebook</Text>
         </TouchableOpacity>
       </View>

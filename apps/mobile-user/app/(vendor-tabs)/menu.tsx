@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, borderRadius, formatCurrency } from '@uritech/shared';
@@ -21,6 +21,19 @@ export default function MenuScreen() {
     setItems((prev) => prev.map((i) => (i.id === id ? { ...i, available: !i.available } : i)));
   };
 
+  const addItem = () => {
+    Alert.alert('Novo item', 'Adicionar item de demonstração ao cardápio?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Adicionar',
+        onPress: () => setItems((prev) => [
+          ...prev,
+          { id: String(Date.now()), name: 'Novo Produto', price: 999, available: true, emoji: '📦' },
+        ]),
+      },
+    ]);
+  };
+
   return (
     <View style={styles.container}>
       <View style={[styles.header, { backgroundColor: VENDOR_RED }]}>
@@ -28,7 +41,7 @@ export default function MenuScreen() {
           <Ionicons name="arrow-back" size={22} color={colors.white} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Cardápio — Kero Kilamba</Text>
-        <TouchableOpacity style={styles.addBtn}>
+        <TouchableOpacity style={styles.addBtn} onPress={addItem}>
           <Text style={styles.addBtnText}>+ Item</Text>
         </TouchableOpacity>
       </View>

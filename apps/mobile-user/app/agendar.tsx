@@ -16,8 +16,10 @@ const UPCOMING = [
 ];
 
 export default function AgendarScreen() {
+  const [serviceKind, setServiceKind] = useState(0);
   const [period, setPeriod] = useState<'manha' | 'tarde' | 'noite'>('manha');
   const [selectedDay, setSelectedDay] = useState(24);
+  const [notifyBefore, setNotifyBefore] = useState(true);
 
   return (
     <View style={styles.container}>
@@ -32,8 +34,12 @@ export default function AgendarScreen() {
       <ScrollView style={styles.content}>
         <View style={styles.serviceTabs}>
           {['Taxi', 'Envio', 'Serviços'].map((s, i) => (
-            <TouchableOpacity key={s} style={[styles.serviceTab, i === 0 && styles.serviceTabActive]}>
-              <Text style={[styles.serviceTabText, i === 0 && styles.serviceTabTextActive]}>{s}</Text>
+            <TouchableOpacity
+              key={s}
+              style={[styles.serviceTab, serviceKind === i && styles.serviceTabActive]}
+              onPress={() => setServiceKind(i)}
+            >
+              <Text style={[styles.serviceTabText, serviceKind === i && styles.serviceTabTextActive]}>{s}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -79,8 +85,8 @@ export default function AgendarScreen() {
           <Text style={styles.locationValue}>Aeroporto 4 de Fevereiro</Text>
         </View>
 
-        <TouchableOpacity style={styles.notifyRow}>
-          <View style={styles.checkbox} />
+        <TouchableOpacity style={styles.notifyRow} onPress={() => setNotifyBefore((v) => !v)}>
+          <View style={[styles.checkbox, notifyBefore && styles.checkboxChecked]} />
           <Text style={styles.notifyText}>Notificar 30 min antes</Text>
         </TouchableOpacity>
 
@@ -135,7 +141,8 @@ const styles = StyleSheet.create({
   locationLabel: { fontSize: 12, color: colors.gray500, marginBottom: 4 },
   locationValue: { fontSize: 15, fontWeight: '600' },
   notifyRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: spacing.xl },
-  checkbox: { width: 22, height: 22, borderWidth: 2, borderColor: colors.primary, borderRadius: 4, backgroundColor: colors.primaryLight },
+  checkbox: { width: 22, height: 22, borderWidth: 2, borderColor: colors.primary, borderRadius: 4, backgroundColor: colors.white },
+  checkboxChecked: { backgroundColor: colors.primaryLight },
   notifyText: { fontSize: 14, fontWeight: '500' },
   primaryBtn: { backgroundColor: colors.primary, padding: spacing.lg, borderRadius: borderRadius.lg, alignItems: 'center', marginBottom: spacing.xl },
   primaryBtnText: { color: colors.white, fontWeight: '700', fontSize: 15 },

@@ -9,3 +9,4 @@ export * from './claimproof';
 export * from './profiles';
 export * from './auth';
 export * from './jwt';
+export * from './social-payments';

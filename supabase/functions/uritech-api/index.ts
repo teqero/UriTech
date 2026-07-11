@@ -1,5 +1,7 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { getWalletSummary } from './wallet.ts';
+import { handleSocialPayments } from './social-payments.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -184,6 +186,18 @@ Deno.serve(async (req) => {
           role: user.role,
         },
       });
+    }
+
+    const userId = resolveUserId(req);
+
+    if (path === '/wallet' && method === 'GET') {
+      if (!userId) return json({ message: 'Utilizador não autenticado' }, 401);
+      return json(await getWalletSummary(supabase, userId));
+    }
+
+    if (path.startsWith('/social-payments')) {
+      const result = await handleSocialPayments(supabase, method, path, req, userId);
+      if (result) return json(result.body, result.status);
     }
 
     return json({ message: `Route not found: ${path}` }, 404);

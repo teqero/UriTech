@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { ROADSIDE_PROBLEMS, colors, spacing, borderRadius, formatCurrency } from '@uritech/shared';
@@ -7,6 +7,13 @@ import { confirmServiceOrder } from '../lib/service-checkout';
 
 export default function AssistenciaScreen() {
   const [selected, setSelected] = useState('tire');
+
+  const requestHelp = () => void confirmServiceOrder({
+    service: 'assistencia',
+    dest: ROADSIDE_PROBLEMS.find((p) => p.id === selected)?.label ?? 'Assistência',
+    label: 'Assistência Estrada SOS',
+    amount: 12500,
+  });
 
   return (
     <View style={styles.container}>
@@ -16,7 +23,7 @@ export default function AssistenciaScreen() {
         <Text style={styles.sosBadge}>SOS</Text>
       </View>
 
-      <TouchableOpacity style={styles.sosButton}>
+      <TouchableOpacity style={styles.sosButton} onPress={requestHelp}>
         <Text style={styles.sosButtonText}>Prima para Ajuda Imediata</Text>
       </TouchableOpacity>
 
@@ -26,7 +33,9 @@ export default function AssistenciaScreen() {
             <Text style={styles.locationLabel}>Localização Atual</Text>
             <Text style={styles.locationValue}>Via Expressa, Km 24 - Luanda</Text>
           </View>
-          <TouchableOpacity><Text style={styles.changeBtn}>Mudar</Text></TouchableOpacity>
+          <TouchableOpacity onPress={() => Alert.alert('Localização', 'Mapa de selecção em breve. Por agora usa a localização GPS actual.')}>
+            <Text style={styles.changeBtn}>Mudar</Text>
+          </TouchableOpacity>
         </View>
 
         <Text style={styles.sectionTitle}>Qual é o problema?</Text>
@@ -51,15 +60,7 @@ export default function AssistenciaScreen() {
           <Text style={styles.eta}>Chegada: 15 min</Text>
         </View>
 
-        <TouchableOpacity
-          style={styles.primaryBtn}
-          onPress={() => void confirmServiceOrder({
-            service: 'assistencia',
-            dest: ROADSIDE_PROBLEMS.find((p) => p.id === selected)?.label ?? 'Assistência',
-            label: 'Assistência Estrada SOS',
-            amount: 12500,
-          })}
-        >
+        <TouchableOpacity style={styles.primaryBtn} onPress={requestHelp}>
           <Text style={styles.primaryBtnText}>SOLICITAR ASSISTÊNCIA</Text>
         </TouchableOpacity>
       </ScrollView>

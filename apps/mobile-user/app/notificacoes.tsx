@@ -1,9 +1,23 @@
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import { useState } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { NOTIFICATIONS, colors, spacing, borderRadius } from '@uritech/shared';
+import { navigateToTracking } from '../lib/navigation';
 
 export default function NotificacoesScreen() {
+  const [readIds, setReadIds] = useState<Set<string>>(new Set());
+
+  const markAllRead = () => {
+    setReadIds(new Set(NOTIFICATIONS.map((n) => n.id)));
+    Alert.alert('Notificações', 'Todas marcadas como lidas.');
+  };
+
+  const openNotification = (n: (typeof NOTIFICATIONS)[0]) => {
+    setReadIds((prev) => new Set(prev).add(n.id));
+    navigateToTracking({ service: 'taxi', dest: n.message, ref: `URI-${n.id}` });
+  };
+
   const today = NOTIFICATIONS.filter((n) => n.group === 'today');
   const earlier = NOTIFICATIONS.filter((n) => n.group === 'earlier');
 
@@ -12,24 +26,32 @@ export default function NotificacoesScreen() {
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}><Ionicons name="arrow-back" size={24} color={colors.white} /></TouchableOpacity>
         <Text style={styles.headerTitle}>Notificações</Text>
-        <TouchableOpacity><Text style={styles.markAll}>Marcar tudo</Text></TouchableOpacity>
+        <TouchableOpacity onPress={markAllRead}><Text style={styles.markAll}>Marcar tudo</Text></TouchableOpacity>
       </View>
       <ScrollView style={styles.content}>
         <Text style={styles.groupTitle}>Hoje</Text>
         {today.map((n) => (
-          <View key={n.id} style={styles.notifCard}>
+          <TouchableOpacity
+            key={n.id}
+            style={[styles.notifCard, readIds.has(n.id) && styles.notifRead]}
+            onPress={() => openNotification(n)}
+          >
             <Text style={styles.notifTitle}>{n.title}</Text>
             <Text style={styles.notifMessage}>{n.message}</Text>
             <Text style={styles.notifTime}>{n.time}</Text>
-          </View>
+          </TouchableOpacity>
         ))}
         <Text style={styles.groupTitle}>Anteriormente</Text>
         {earlier.map((n) => (
-          <View key={n.id} style={[styles.notifCard, styles.notifRead]}>
+          <TouchableOpacity
+            key={n.id}
+            style={[styles.notifCard, styles.notifRead, readIds.has(n.id) && { opacity: 0.6 }]}
+            onPress={() => openNotification(n)}
+          >
             <Text style={styles.notifTitle}>{n.title}</Text>
             <Text style={styles.notifMessage}>{n.message}</Text>
             <Text style={styles.notifTime}>{n.time}</Text>
-          </View>
+          </TouchableOpacity>
         ))}
       </ScrollView>
     </View>

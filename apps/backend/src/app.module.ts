@@ -13,6 +13,7 @@ import { ClaimEvidenceModule } from './claim-evidence/claim-evidence.module';
 import { WalletModule } from './wallet/wallet.module';
 import { DatabaseModule } from './database/database.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { SocialPaymentsModule } from './social-payments/social-payments.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     ClaimEvidenceModule,
     WalletModule,
     NotificationsModule,
+    SocialPaymentsModule,
   ],
 })
 export class AppModule {}

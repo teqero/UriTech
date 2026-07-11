@@ -2,6 +2,7 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-nati
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { FAMILY_MEMBERS, colors, spacing, borderRadius } from '@uritech/shared';
+import { navigateToTracking } from '../lib/navigation';
 
 export default function FamiliaScreen() {
   return (
@@ -15,7 +16,11 @@ export default function FamiliaScreen() {
       <Text style={styles.privacy}>Sua localização é partilhada apenas com membros autorizados por si.</Text>
       <ScrollView style={styles.content}>
         {FAMILY_MEMBERS.map((m) => (
-          <View key={m.name} style={styles.memberCard}>
+          <TouchableOpacity
+            key={m.name}
+            style={styles.memberCard}
+            onPress={() => navigateToTracking({ service: 'familia', dest: m.status, ref: `FAM-${m.name[0]}` })}
+          >
             <View style={styles.avatar}><Text style={styles.avatarText}>{m.name[0]}</Text></View>
             <View style={styles.memberInfo}>
               <Text style={styles.memberName}>{m.name}</Text>
@@ -25,7 +30,7 @@ export default function FamiliaScreen() {
               <Text style={styles.battery}>🔋 {m.battery}%</Text>
               <Text style={styles.distance}>Distância {m.distance}</Text>
             </View>
-          </View>
+          </TouchableOpacity>
         ))}
       </ScrollView>
     </View>

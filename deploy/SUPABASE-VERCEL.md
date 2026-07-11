@@ -37,9 +37,9 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key do dashboard Supabase>
 
 | App | URL | Notas |
 |-----|-----|-------|
-| **Mobile Web (principal)** | https://web-user-sooty.vercel.app | Expo `mobile-user` exportado para web |
+| **Mobile Web (principal)** | https://web-user-sooty.vercel.app · https://app.urigo.ao (após DNS) | Expo `mobile-user` exportado para web |
 | **Web User (legado Next.js)** | — | substituído pelo mobile web no project `web-user` |
-| **Web Admin** | https://web-admin-three-xi.vercel.app |
+| **Web Admin** | https://web-admin-three-xi.vercel.app · https://admin.urigo.ao (após DNS) |
 | **Dashboard Vercel** | https://vercel.com/teqeros-projects |
 
 ### Deploy manual (a partir da raiz do monorepo)
@@ -63,9 +63,29 @@ EXPO_PUBLIC_API_URL=https://akyzbuvdokdrjpuzhocg.supabase.co/functions/v1/uritec
 
 ---
 
+## Domínios customizados (urigo.ao)
+
+Domínios já adicionados nos projectos Vercel. Falta configurar DNS no registador do domínio:
+
+| Subdomínio | Projecto Vercel | Registo DNS |
+|------------|-----------------|-------------|
+| `app.urigo.ao` | web-user (mobile web) | `A` → `76.76.21.21` |
+| `admin.urigo.ao` | web-admin | `A` → `76.76.21.21` |
+
+Alternativa: apontar nameservers do domínio para `ns1.vercel-dns.com` e `ns2.vercel-dns.com` (Vercel gere tudo).
+
+Verificar após DNS propagar:
+
+```bash
+npx vercel domains verify app.urigo.ao
+npx vercel domains verify admin.urigo.ao
+```
+
+---
+
 ## Próximos passos (opcional)
 
 1. Renomear projeto Supabase "SecurePay" → "UriTech" no dashboard
-2. Domínio customizado no Vercel (ex: `app.urigo.ao`, `admin.urigo.ao`)
+2. ~~Domínio customizado no Vercel (ex: `app.urigo.ao`, `admin.urigo.ao`)~~ — domínios adicionados; configurar DNS no registador
 3. Migrar backend NestJS completo para Postgres ou expandir Edge Functions
 4. Habilitar `verify_jwt` na Edge Function com auth real

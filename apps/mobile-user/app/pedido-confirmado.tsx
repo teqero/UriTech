@@ -2,6 +2,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { SERVICE_LABELS, colors, spacing, borderRadius, formatCurrency } from '@uritech/shared';
 import { goHome, navigateToTracking } from '../lib/navigation';
+import { shareOrderReference } from '../lib/ui-actions';
 
 export default function PedidoConfirmadoScreen() {
   const { service, dest, ref, label, amount } = useLocalSearchParams<{
@@ -50,7 +51,15 @@ export default function PedidoConfirmadoScreen() {
       >
         <Text style={styles.primaryBtnText}>Acompanhar no Mapa</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.secondaryBtn}>
+      <TouchableOpacity
+        style={styles.secondaryBtn}
+        onPress={() => void shareOrderReference({
+          service: displayLabel,
+          ref: reference,
+          dest: dest ?? '',
+          amount: String(price),
+        })}
+      >
         <Text style={styles.secondaryBtnText}>Partilhar com Amigos</Text>
       </TouchableOpacity>
       <TouchableOpacity onPress={goHome}>

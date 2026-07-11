@@ -59,6 +59,7 @@ export default function RootLayout() {
               <Stack.Screen name="pool" />
               <Stack.Screen name="agendar" />
               <Stack.Screen name="ia-urigo" />
+              <Stack.Screen name="pagar-produto" options={{ presentation: 'card' }} />
             </Stack>
           </ProfileThemeProvider>
         </AuthProvider>

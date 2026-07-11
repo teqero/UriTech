@@ -45,7 +45,7 @@ export default function PoolScreen() {
           <Text style={styles.savings}>Poupe {formatCurrency(1400)} (40% off)</Text>
         </View>
 
-        <TouchableOpacity style={styles.secondaryBtn}>
+        <TouchableOpacity style={styles.secondaryBtn} onPress={() => router.push('/taxi')}>
           <Text style={styles.secondaryBtnText}>MANTER VIAGEM PRIVADA</Text>
         </TouchableOpacity>
         <TouchableOpacity

@@ -75,7 +75,10 @@ export default function CarregarWalletScreen() {
         </View>
 
         <Text style={styles.sectionTitle}>Fonte de Pagamento</Text>
-        <TouchableOpacity style={[styles.sourceCard, styles.sourceSelected]}>
+        <TouchableOpacity
+          style={[styles.sourceCard, styles.sourceSelected]}
+          onPress={() => Alert.alert('Multicaixa Express', 'Fonte de pagamento seleccionada para carregamento.')}
+        >
           <Text style={styles.sourceText}>Multicaixa Express</Text>
           <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
         </TouchableOpacity>
