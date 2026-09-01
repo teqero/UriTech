@@ -6,6 +6,7 @@ import {
   getMapEmbedUrl,
   previewDemoPlace,
 } from '@uritech/shared';
+import type { DemoPlace } from '@uritech/shared';
 import { useUserLocation } from '../lib/use-user-location';
 import type { UriMapProps } from './uri-map-types';
 
@@ -17,8 +18,8 @@ export function UriMap({
   flex = false,
   showUserLocation = true,
 }: UriMapProps) {
-  const destPlace = useMemo(() => {
-    if (destinationProp) return destinationProp;
+  const destPlace: DemoPlace | undefined = useMemo(() => {
+    if (destinationProp) return destinationProp as DemoPlace;
     return destinationLabel ? previewDemoPlace(destinationLabel) : undefined;
   }, [destinationProp, destinationLabel]);
 

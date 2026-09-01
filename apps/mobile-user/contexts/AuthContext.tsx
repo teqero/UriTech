@@ -9,7 +9,7 @@ import {
   type AppProfileId,
 } from '@uritech/shared';
 import { getApiBaseUrl } from '../lib/api';
-import { clearAuthSession, loadAuthSession, saveAuthSession } from '../lib/auth-storage';
+import { clearAuthSession, getRefreshToken, loadAuthSession, saveAuthSession } from '../lib/auth-storage';
 import { enablePushNotifications } from '../lib/push-notifications';
 
 interface AuthContextValue {
@@ -67,6 +67,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
+    try {
+      const apiUrl = getApiBaseUrl();
+      const refreshToken = await getRefreshToken();
+      if (refreshToken) {
+        await fetch(`${apiUrl}/auth/logout`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken }),
+        });
+      }
+    } catch {
+      /* ignore backend errors on logout */
+    }
     await clearAuthSession();
     setSession(null);
     router.replace('/(auth)/login' as never);

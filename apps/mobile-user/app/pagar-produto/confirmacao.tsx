@@ -6,7 +6,7 @@ import {
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, borderRadius, formatCurrency } from '@uritech/shared';
-import { fetchSocialPayment, platformLabel, PLATFORM_ICONS } from '../../lib/social-payments-api';
+import { fetchSocialPayment, platformLabel, PLATFORM_ICONS, proxyImageUrl, syncSocialPayment } from '../../lib/social-payments-api';
 
 export default function ConfirmacaoScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -21,6 +21,8 @@ export default function ConfirmacaoScreen() {
   const text = dark ? colors.white : colors.black;
   const muted = dark ? '#9ca3af' : colors.gray500;
 
+  const [refreshing, setRefreshing] = useState(false);
+
   const load = useCallback(async () => {
     if (!id) return;
     setLoading(true);
@@ -30,6 +32,16 @@ export default function ConfirmacaoScreen() {
       setLoading(false);
     }
   }, [id]);
+
+  const handleRefresh = async () => {
+    if (!id) return;
+    setRefreshing(true);
+    try {
+      setProduct(await syncSocialPayment(id));
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   useEffect(() => { void load(); }, [load]);
 
@@ -42,9 +54,10 @@ export default function ConfirmacaoScreen() {
     );
   }
 
-  const images = product.images.length > 0 ? product.images : [];
+  const images = product.images.length > 0 ? product.images.map(proxyImageUrl) : [];
   const meta = product as typeof product & { metadata?: { completeness?: number; aiEnriched?: boolean } };
   const completeness = meta.metadata?.completeness ?? (product.price > 0 ? 80 : 40);
+  const sparseImport = completeness < 65 || (product.price <= 0 && images.length === 0);
 
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>
@@ -88,6 +101,22 @@ export default function ConfirmacaoScreen() {
               <Text style={styles.completeText}>{completeness}% completo</Text>
             </View>
           </View>
+
+          {sparseImport ? (
+            <View style={[styles.warnBanner, { backgroundColor: dark ? '#2a2410' : '#FEF3C7' }]}>
+              <Ionicons name="information-circle" size={18} color="#D97706" />
+              <Text style={[styles.warnText, { color: dark ? '#FCD34D' : '#92400E' }]}>
+                Alguns dados do anúncio não foram detectados. Toque em Actualizar ou confirme no checkout.
+              </Text>
+              <TouchableOpacity style={styles.refreshBtn} onPress={() => void handleRefresh()} disabled={refreshing}>
+                {refreshing ? (
+                  <ActivityIndicator size="small" color="#6C63FF" />
+                ) : (
+                  <Text style={styles.refreshBtnText}>Actualizar</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          ) : null}
 
           <Text style={[styles.title, { color: text }]}>{product.title}</Text>
           <Text style={[styles.price, { color: '#6C63FF' }]}>
@@ -156,6 +185,13 @@ const styles = StyleSheet.create({
   platformBadge: { fontSize: 12, fontWeight: '700', color: '#6C63FF' },
   completeBadge: { backgroundColor: '#EEEDFF', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
   completeText: { fontSize: 10, fontWeight: '700', color: '#6C63FF' },
+  warnBanner: {
+    flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8,
+    padding: spacing.md, borderRadius: borderRadius.lg, marginBottom: spacing.md,
+  },
+  warnText: { flex: 1, fontSize: 12, lineHeight: 18 },
+  refreshBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: '#EEEDFF' },
+  refreshBtnText: { fontSize: 12, fontWeight: '700', color: '#6C63FF' },
   title: { fontSize: 20, fontWeight: '800', marginBottom: 8 },
   price: { fontSize: 24, fontWeight: '800', marginBottom: spacing.md },
   desc: { fontSize: 14, lineHeight: 20, marginBottom: spacing.lg },

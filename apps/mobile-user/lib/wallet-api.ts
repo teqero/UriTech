@@ -1,4 +1,4 @@
-import type { WalletSummary, WalletTransactionType } from '@uritech/shared';
+import type { WalletSummary, WalletTransaction, WalletTransactionType } from '@uritech/shared';
 import { apiFetch } from './api-fetch';
 
 async function parseError(res: Response, fallback: string): Promise<never> {
@@ -16,6 +16,12 @@ export async function fetchWallet(): Promise<WalletSummary> {
   const res = await apiFetch('/wallet');
   if (!res.ok) return parseError(res, 'Não foi possível carregar a carteira');
   return res.json() as Promise<WalletSummary>;
+}
+
+export async function fetchWalletTransactions(): Promise<WalletTransaction[]> {
+  const res = await apiFetch('/wallet/transactions');
+  if (!res.ok) return parseError(res, 'Não foi possível carregar transações');
+  return res.json() as Promise<WalletTransaction[]>;
 }
 
 export async function topUpWallet(amount: number): Promise<WalletSummary> {

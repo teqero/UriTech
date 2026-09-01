@@ -1,26 +1,89 @@
 import { API_BASE_URL, type ApiIntegration, type WhiteLabelConfig, type OnDemandCatalogItem, type StoreCategoryItem, type UserRole, type Insurer, type ClaimEvidenceReport, AUTH_STORAGE_KEY, type AuthSession } from '@uritech/shared';
 
-function getAuthToken(): string | null {
+function getStoredSession(): (AuthSession & { refreshToken?: string }) | null {
   if (typeof window === 'undefined') return null;
   const raw = localStorage.getItem(AUTH_STORAGE_KEY);
   if (!raw) return null;
   try {
-    return (JSON.parse(raw) as AuthSession).accessToken ?? null;
+    return JSON.parse(raw) as AuthSession & { refreshToken?: string };
   } catch {
     return null;
   }
 }
 
-async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const token = getAuthToken();
-  const res = await fetch(`${API_BASE_URL}${path}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options?.headers,
-    },
-    ...options,
+function setStoredSession(session: AuthSession & { refreshToken?: string }) {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(session));
+}
+
+function clearStoredSession() {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(AUTH_STORAGE_KEY);
+}
+
+let isRefreshing = false;
+let refreshPromise: Promise<string | null> | null = null;
+
+async function doRefresh(): Promise<string | null> {
+  const session = getStoredSession();
+  if (!session?.refreshToken) return null;
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken: session.refreshToken }),
+    });
+
+    if (!res.ok) {
+      clearStoredSession();
+      return null;
+    }
+
+    const data = (await res.json()) as AuthSession & { refreshToken?: string };
+    setStoredSession(data);
+    return data.accessToken;
+  } catch {
+    clearStoredSession();
+    return null;
+  }
+}
+
+async function refreshToken(): Promise<string | null> {
+  if (isRefreshing && refreshPromise) {
+    return refreshPromise;
+  }
+  isRefreshing = true;
+  refreshPromise = doRefresh().finally(() => {
+    isRefreshing = false;
+    refreshPromise = null;
   });
+  return refreshPromise;
+}
+
+async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  const session = getStoredSession();
+  const token = session?.accessToken ?? null;
+
+  const makeRequest = (accessToken: string | null) =>
+    fetch(`${API_BASE_URL}${path}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        ...options?.headers,
+      },
+      ...options,
+    });
+
+  let res = await makeRequest(token);
+
+  if (res.status === 401 && token) {
+    const newToken = await refreshToken();
+    if (newToken) {
+      res = await makeRequest(newToken);
+    }
+  }
+
   if (!res.ok) {
     const text = await res.text();
     throw new Error(text || `Erro ${res.status}`);

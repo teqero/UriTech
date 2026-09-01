@@ -6,10 +6,18 @@ import {
   type LoginCredentials,
 } from '@uritech/shared';
 
+function readRefreshToken(parsed: Record<string, unknown>): string | undefined {
+  return typeof parsed.refreshToken === 'string' ? parsed.refreshToken : undefined;
+}
+
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '') || 'http://localhost:4000/api/v1';
 
-export async function loginRequest(credentials: LoginCredentials): Promise<AuthSession> {
+export interface StoredSession extends AuthSession {
+  refreshToken?: string;
+}
+
+export async function loginRequest(credentials: LoginCredentials): Promise<StoredSession> {
   const res = await fetch(`${API_BASE}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -22,17 +30,17 @@ export async function loginRequest(credentials: LoginCredentials): Promise<AuthS
   return res.json();
 }
 
-export function saveSession(session: AuthSession) {
+export function saveSession(session: StoredSession | Record<string, unknown>) {
   if (typeof window === 'undefined') return;
   localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(session));
 }
 
-export function loadSession(): AuthSession | null {
+export function loadSession(): StoredSession | null {
   if (typeof window === 'undefined') return null;
   const raw = localStorage.getItem(AUTH_STORAGE_KEY);
   if (!raw) return null;
   try {
-    return JSON.parse(raw) as AuthSession;
+    return JSON.parse(raw) as StoredSession;
   } catch {
     return null;
   }

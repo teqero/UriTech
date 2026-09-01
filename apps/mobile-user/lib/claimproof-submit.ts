@@ -1,8 +1,9 @@
 import type { ClaimMediaItem, ClaimEvidenceReport, IncidentType, Location } from '@uritech/shared';
 import { URIPROVA_DEFAULT_LOCATION } from '@uritech/shared';
 import { apiFetch } from './api-fetch';
+import { uploadLocalFile } from './upload';
 
-const MAX_INLINE_BYTES = 8 * 1024 * 1024;
+const MAX_INLINE_BYTES = 1 * 1024 * 1024; // 1MB — acima disto usa presigned URL
 
 function mimeFor(type: ClaimMediaItem['type']): string {
   if (type === 'photo') return 'image/jpeg';
@@ -35,6 +36,7 @@ export async function encodeMediaForSubmit(media: ClaimMediaItem[]): Promise<Cla
   const encoded: ClaimMediaItem[] = [];
 
   for (const item of media) {
+    // Já é URL remota (já fez upload anteriormente)
     if (!item.uri || item.uri.startsWith('http')) {
       encoded.push(item);
       continue;
@@ -42,15 +44,28 @@ export async function encodeMediaForSubmit(media: ClaimMediaItem[]): Promise<Cla
 
     try {
       const { base64, size } = await readLocalFileAsBase64(item.uri);
-      if (size > MAX_INLINE_BYTES) {
-        encoded.push({ ...item, base64: undefined });
+
+      // Ficheiros pequenos: inline base64 (rápido, sem round-trip extra)
+      if (size <= MAX_INLINE_BYTES) {
+        encoded.push({
+          ...item,
+          base64: `data:${mimeFor(item.type)};base64,${base64}`,
+        });
         continue;
       }
+
+      // Ficheiros grandes: upload via presigned URL para MinIO
+      const mime = mimeFor(item.type);
+      const prefix = item.type === 'photo' ? 'claims/photos' : item.type === 'video' ? 'claims/videos' : 'claims/audio';
+      const { publicUrl } = await uploadLocalFile(item.uri, prefix, mime);
+
       encoded.push({
         ...item,
-        base64: `data:${mimeFor(item.type)};base64,${base64}`,
+        uri: publicUrl,
+        base64: undefined, // não envia base64, backend lê da URL
       });
     } catch {
+      // Fallback: envia sem processar
       encoded.push(item);
     }
   }

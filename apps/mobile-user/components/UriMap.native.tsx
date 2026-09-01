@@ -8,6 +8,7 @@ import {
   getStaticMapUrl,
   previewDemoPlace,
 } from '@uritech/shared';
+import type { DemoPlace } from '@uritech/shared';
 import { fitMapRegion, useUserLocation } from '../lib/use-user-location';
 import type { UriMapProps } from './uri-map-types';
 
@@ -20,8 +21,8 @@ export function UriMap({
   showUserLocation = true,
   markers = [],
 }: UriMapProps) {
-  const destPlace = useMemo(() => {
-    if (destinationProp) return destinationProp;
+  const destPlace: DemoPlace | undefined = useMemo(() => {
+    if (destinationProp) return destinationProp as DemoPlace;
     return destinationLabel ? previewDemoPlace(destinationLabel) : undefined;
   }, [destinationProp, destinationLabel]);
 

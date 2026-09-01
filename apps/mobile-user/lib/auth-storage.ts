@@ -22,3 +22,14 @@ export async function saveAuthSession(session: AuthSession | Record<string, unkn
 export async function clearAuthSession(): Promise<void> {
   await AsyncStorage.removeItem(AUTH_STORAGE_KEY);
 }
+
+export async function getRefreshToken(): Promise<string | null> {
+  try {
+    const raw = await AsyncStorage.getItem(AUTH_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    return (parsed.refreshToken as string) ?? (parsed.refresh_token as string) ?? null;
+  } catch {
+    return null;
+  }
+}

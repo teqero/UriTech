@@ -17,7 +17,7 @@ const QUICK_ACTIONS = [
 
 export default function PaymentScreen() {
   const [loading, setLoading] = useState(true);
-  const [balance, setBalance] = useState(124500);
+  const [balance, setBalance] = useState<number | null>(null);
   const [mask, setMask] = useState('**** 4291');
   const [transactions, setTransactions] = useState<
     { id: string; title: string; when: string; amount: number; icon: 'car' | 'lock-open' | 'bag-handle' | 'add' | 'wallet-outline' }[]
@@ -44,7 +44,7 @@ export default function PaymentScreen() {
         })),
       );
     } catch {
-      /* fallback to defaults */
+      setBalance(null);
     } finally {
       setLoading(false);
     }
@@ -79,7 +79,7 @@ export default function PaymentScreen() {
           {loading ? (
             <ActivityIndicator color={colors.white} style={{ marginTop: 8 }} />
           ) : (
-            <Text style={styles.walletBalance}>{formatCurrency(balance)}</Text>
+            <Text style={styles.walletBalance}>{balance !== null ? formatCurrency(balance) : '---'}</Text>
           )}
         </View>
 

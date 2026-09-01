@@ -13,6 +13,7 @@ export const unstable_settings = {
 
 export default function RootLayout() {
   return (
+    // @ts-expect-error GestureHandlerRootView children prop mismatch in newer RN types
     <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider>
         <AuthProvider>

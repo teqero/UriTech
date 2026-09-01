@@ -12,10 +12,15 @@ import {
   previewDemoPlace,
   resolveDemoPlace,
 } from '@uritech/shared';
-import type { Order, OrderStatus, Ride, RideStatus } from '@uritech/shared';
+import type { Order, OrderStatus, Ride, RideStatus, Location } from '@uritech/shared';
 import { UriMap } from '../components/UriMap';
 import { fetchOrder } from '../lib/orders-api';
 import { fetchRide } from '../lib/rides-api';
+import { useRideSocket } from '../lib/use-ride-socket';
+
+function formatLocationLabel(loc: Location): string {
+  return loc.address ?? `${loc.latitude.toFixed(4)}, ${loc.longitude.toFixed(4)}`;
+}
 
 const TAXI_STEPS = ['Confirmado', 'A Caminho', 'Entregue'];
 const LOJA_STEPS = ['Confirmado', 'Preparando', 'A Caminho', 'Entregue'];
@@ -116,7 +121,14 @@ export default function RastreamentoScreen() {
 
   const trackApi = shouldTrackApi(ref);
   const isLoja = service === 'lojas';
+  const isTaxi = !isLoja;
 
+  // WebSocket para corridas em tempo real
+  const { connected, ride: wsRide, driverLocation } = useRideSocket(
+    isTaxi && trackApi && ref ? ref : null,
+  );
+
+  // Polling REST para dados iniciais e fallback
   useEffect(() => {
     if (!trackApi || !ref) return;
 
@@ -139,35 +151,38 @@ export default function RastreamentoScreen() {
     };
 
     load();
-    const timer = setInterval(load, 4000);
+    const timer = setInterval(load, 8000); // polling mais lento — WebSocket é primário
     return () => {
       active = false;
       clearInterval(timer);
     };
   }, [ref, trackApi, isLoja]);
 
+  // Merge dados WebSocket com dados REST
+  const currentRide = wsRide ?? ride;
+
   const destPlace = useMemo(
     () => (dest ? resolveDemoPlace(dest) ?? previewDemoPlace(dest) : undefined),
     [dest],
   );
 
-  const pickup = order?.pickupLocation ?? ride?.pickup ?? DEFAULT_ORIGIN;
-  const destination = order?.deliveryLocation ?? ride?.destination;
+  const pickup = order?.pickupLocation ?? currentRide?.pickup ?? DEFAULT_ORIGIN;
+  const destination = order?.deliveryLocation ?? currentRide?.destination;
   const serviceLabel = SERVICE_LABELS[service ?? 'taxi'] ?? 'Pedido';
   const orderRef = ref ?? 'URI-98442';
   const steps = isLoja ? LOJA_STEPS : TAXI_STEPS;
   const stepIndex = order
     ? orderStepIndex(order.status)
-    : ride
-      ? rideStepIndex(ride.status) + 1
+    : currentRide
+      ? rideStepIndex(currentRide.status) + 1
       : 1;
-  const etaMin = order ? 15 : ride ? Math.max(1, Math.round(ride.duration / 60)) : 12;
+  const etaMin = order ? 15 : currentRide ? Math.max(1, Math.round(currentRide.duration / 60)) : 12;
   const statusLabel = order
     ? orderStatusLabel(order.status)
-    : ride
-      ? rideStatusLabel(ride.status)
+    : currentRide
+      ? rideStatusLabel(currentRide.status)
       : 'A CAMINHO';
-  const etaHint = order ? orderEtaHint(order.status) : ride ? rideEtaHint(ride.status) : 'Motorista a caminho';
+  const etaHint = order ? orderEtaHint(order.status) : currentRide ? rideEtaHint(currentRide.status) : 'Motorista a caminho';
 
   return (
     <View style={styles.container}>
@@ -191,12 +206,22 @@ export default function RastreamentoScreen() {
           ))}
         </View>
 
+        {isTaxi && (
+          <View style={styles.wsBadge}>
+            <Ionicons name={connected ? 'radio' : 'radio-button-off'} size={12} color={connected ? '#2E7D32' : colors.gray500} />
+            <Text style={[styles.wsText, { color: connected ? '#2E7D32' : colors.gray500 }]}>
+              {connected ? 'Em tempo real' : 'A sincronizar…'}
+            </Text>
+          </View>
+        )}
+
         <UriMap
           destinationLabel={dest ?? destination?.address ?? ''}
           origin={pickup}
           destination={destination}
           height={220}
           showUserLocation
+          markers={driverLocation ? [{ latitude: driverLocation.latitude, longitude: driverLocation.longitude, title: 'Motorista', pinColor: '#1A73E8' }] : []}
         />
 
         {(dest || destination) && (
@@ -205,7 +230,7 @@ export default function RastreamentoScreen() {
               <View style={[styles.dot, { backgroundColor: colors.primary }]} />
               <View>
                 <Text style={styles.routeLabel}>Origem</Text>
-                <Text style={styles.routeValue}>{formatPlaceLabel(pickup)}</Text>
+                <Text style={styles.routeValue}>{formatLocationLabel(pickup)}</Text>
               </View>
             </View>
             <View style={styles.routeRow}>
@@ -223,12 +248,12 @@ export default function RastreamentoScreen() {
 
         <View style={styles.etaCard}>
           <Text style={styles.etaValue}>
-            {(order?.status === 'delivered' || ride?.status === 'completed') ? '✓' : `${etaMin} min`}
+            {(order?.status === 'delivered' || currentRide?.status === 'completed') ? '✓' : `${etaMin} min`}
           </Text>
           <Text style={styles.etaHint}>{etaHint}</Text>
         </View>
 
-        {(ride?.driverId || order?.driverId) && (
+        {(currentRide?.driverId || order?.driverId) && (
           <View style={styles.driverCard}>
             <View style={styles.driverAvatar}>
               <Text style={styles.driverInitial}>M</Text>
@@ -248,8 +273,8 @@ export default function RastreamentoScreen() {
             { label: 'Estado', value: statusLabel },
             ...(order
               ? [{ label: 'Total', value: `${order.total.toLocaleString('pt-AO')} Kz` }]
-              : ride
-                ? [{ label: 'Tarifa', value: `${ride.fare.toLocaleString('pt-AO')} Kz` }]
+              : currentRide
+                ? [{ label: 'Tarifa', value: `${currentRide.fare.toLocaleString('pt-AO')} Kz` }]
                 : []),
           ].map((row) => (
             <View key={row.label} style={styles.summaryRow}>
@@ -302,6 +327,18 @@ const styles = StyleSheet.create({
   stepNumActive: { color: colors.white },
   stepLabel: { fontSize: 10, fontWeight: '600', textAlign: 'center' },
   stepLabelMuted: { color: colors.gray500 },
+  wsBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: spacing.md,
+    backgroundColor: colors.gray50,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 6,
+    borderRadius: borderRadius.lg,
+    alignSelf: 'flex-start',
+  },
+  wsText: { fontSize: 11, fontWeight: '600' },
   routeCard: {
     marginTop: spacing.lg,
     padding: spacing.lg,

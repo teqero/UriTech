@@ -1,15 +1,32 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { DEFAULT_ORIGIN, colors, spacing, borderRadius, previewDemoPlace } from '@uritech/shared';
 import { UriMap } from '../../components/UriMap';
+import { useRideSocket } from '../../lib/use-ride-socket';
+import { useUserLocation } from '../../lib/use-user-location';
 
 export default function NavigationScreen() {
-  const { dest } = useLocalSearchParams<{ dest?: string }>();
+  const { dest, rideId } = useLocalSearchParams<{ dest?: string; rideId?: string }>();
   const [phase, setPhase] = useState<'pickup' | 'dropoff'>('pickup');
 
   const destination = dest ? previewDemoPlace(dest) : undefined;
   const pickup = DEFAULT_ORIGIN;
+
+  // WebSocket para enviar localização do motorista em tempo real
+  const { connected, sendDriverLocation } = useRideSocket(rideId ?? null);
+  const { location: userLocation } = useUserLocation(true);
+
+  // Enviar localização do motorista a cada 5 segundos
+  useEffect(() => {
+    if (!rideId || !connected || !userLocation) return;
+
+    const interval = setInterval(() => {
+      sendDriverLocation(userLocation.latitude, userLocation.longitude);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [rideId, connected, userLocation, sendDriverLocation]);
 
   return (
     <View style={styles.container}>
@@ -33,8 +50,19 @@ export default function NavigationScreen() {
       </View>
 
       <View style={styles.tripCard}>
-        <Text style={styles.clientName}>Cliente UriGo</Text>
-        <Text style={styles.clientRating}>⭐ 4.8 • Corrida activa</Text>
+        <View style={styles.headerRow}>
+          <View>
+            <Text style={styles.clientName}>Cliente UriGo</Text>
+            <Text style={styles.clientRating}>⭐ 4.8 • Corrida activa</Text>
+          </View>
+          {rideId && (
+            <View style={[styles.wsBadge, connected && styles.wsBadgeConnected]}>
+              <Text style={[styles.wsText, connected && styles.wsTextConnected]}>
+                {connected ? '● Online' : '○ A ligar…'}
+              </Text>
+            </View>
+          )}
+        </View>
         <Text style={styles.nextStep}>PRÓXIMO PASSO</Text>
         <Text style={styles.destination}>
           {phase === 'pickup' ? 'Recolher passageiro' : 'Levar ao destino'}
@@ -67,8 +95,13 @@ const styles = StyleSheet.create({
   mapOverlay: { position: 'absolute', bottom: spacing.lg, left: spacing.lg, right: spacing.lg, alignItems: 'center' },
   phaseBadge: { fontSize: 11, fontWeight: '700', color: colors.primary, backgroundColor: colors.white, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6 },
   tripCard: { backgroundColor: colors.white, padding: spacing.xl, borderTopLeftRadius: borderRadius['2xl'], borderTopRightRadius: borderRadius['2xl'], shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.1, elevation: 8 },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: spacing.sm },
   clientName: { fontSize: 18, fontWeight: '700' },
   clientRating: { fontSize: 13, color: colors.gray500, marginTop: 2 },
+  wsBadge: { backgroundColor: colors.gray100, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
+  wsBadgeConnected: { backgroundColor: '#E8F5E9' },
+  wsText: { fontSize: 10, fontWeight: '700', color: colors.gray500 },
+  wsTextConnected: { color: '#2E7D32' },
   nextStep: { fontSize: 11, color: colors.primary, fontWeight: '700', marginTop: spacing.lg },
   destination: { fontSize: 15, fontWeight: '600', marginTop: 4 },
   address: { fontSize: 13, color: colors.gray500, marginTop: 4, marginBottom: spacing.xl },

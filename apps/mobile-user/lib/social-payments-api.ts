@@ -1,5 +1,12 @@
 import type { SocialPaymentReceipt, SocialPaymentRecord } from '@uritech/shared';
 import { apiFetch } from './api-fetch';
+import { getApiBaseUrl } from './api';
+
+/** CDN das redes sociais bloqueiam hotlink — servimos via proxy da API. */
+export function proxyImageUrl(imageUrl: string): string {
+  const base = getApiBaseUrl().replace(/\/$/, '');
+  return `${base}/social-payments/image?url=${encodeURIComponent(imageUrl)}`;
+}
 
 async function parseJson<T>(res: Response): Promise<T> {
   if (!res.ok) {
@@ -11,7 +18,7 @@ async function parseJson<T>(res: Response): Promise<T> {
 }
 
 export async function importSocialProduct(url: string): Promise<SocialPaymentRecord> {
-  const res = await apiFetch('/api/v1/social-payments/import', {
+  const res = await apiFetch('/social-payments/import', {
     method: 'POST',
     body: JSON.stringify({ url }),
   });
@@ -19,7 +26,7 @@ export async function importSocialProduct(url: string): Promise<SocialPaymentRec
 }
 
 export async function fetchSocialPayment(id: string): Promise<SocialPaymentRecord> {
-  const res = await apiFetch(`/api/v1/social-payments/${id}`);
+  const res = await apiFetch(`/social-payments/${id}`);
   return parseJson(res);
 }
 
@@ -31,7 +38,7 @@ export async function prepareSocialCheckout(
     couponCode?: string;
   },
 ): Promise<SocialPaymentRecord> {
-  const res = await apiFetch(`/api/v1/social-payments/${id}/checkout`, {
+  const res = await apiFetch(`/social-payments/${id}/checkout`, {
     method: 'POST',
     body: JSON.stringify(options),
   });
@@ -47,7 +54,7 @@ export async function paySocialProduct(
     payWithWallet?: boolean;
   },
 ): Promise<SocialPaymentReceipt> {
-  const res = await apiFetch(`/api/v1/social-payments/${id}/pay`, {
+  const res = await apiFetch(`/social-payments/${id}/pay`, {
     method: 'POST',
     body: JSON.stringify(options),
   });
@@ -55,12 +62,12 @@ export async function paySocialProduct(
 }
 
 export async function listSocialPayments(): Promise<SocialPaymentRecord[]> {
-  const res = await apiFetch('/api/v1/social-payments');
+  const res = await apiFetch('/social-payments');
   return parseJson(res);
 }
 
 export async function syncSocialPayment(id: string): Promise<SocialPaymentRecord> {
-  const res = await apiFetch(`/api/v1/social-payments/${id}/sync`, { method: 'POST' });
+  const res = await apiFetch(`/social-payments/${id}/sync`, { method: 'POST' });
   return parseJson(res);
 }
 

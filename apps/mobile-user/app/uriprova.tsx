@@ -20,6 +20,16 @@ import { submitClaimEvidence } from '../lib/claimproof-submit';
 
 type Step = 'intro' | 'policy' | 'incident' | 'capture' | 'review' | 'done';
 
+function generateIntegrityHash(inputs: string[]): string {
+  const joined = inputs.join('|');
+  let hash = 0;
+  for (let i = 0; i < joined.length; i++) {
+    const char = joined.charCodeAt(i);
+    hash = ((hash << 5) - hash + char) | 0;
+  }
+  return Math.abs(hash).toString(16).padStart(8, '0').toUpperCase();
+}
+
 export default function UriProvaScreen() {
   const [step, setStep] = useState<Step>('intro');
   const [insurers, setInsurers] = useState<Insurer[]>(DEMO_INSURERS);

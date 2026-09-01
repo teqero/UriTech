@@ -6,7 +6,7 @@ import {
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, borderRadius, formatCurrency } from '@uritech/shared';
-import { fetchSocialPayment, paySocialProduct, prepareSocialCheckout, PLATFORM_ICONS } from '../../lib/social-payments-api';
+import { fetchSocialPayment, paySocialProduct, prepareSocialCheckout, PLATFORM_ICONS, proxyImageUrl } from '../../lib/social-payments-api';
 
 type DeliveryOption = 'pickup' | 'urigo' | 'none';
 
@@ -111,7 +111,7 @@ export default function CheckoutScreen() {
       <ScrollView style={styles.scroll} contentContainerStyle={{ paddingBottom: 120 }}>
         <View style={[styles.productRow, { backgroundColor: card }]}>
           {product.images[0] ? (
-            <Image source={{ uri: product.images[0] }} style={styles.thumb} />
+            <Image source={{ uri: proxyImageUrl(product.images[0]) }} style={styles.thumb} />
           ) : (
             <View style={styles.thumbPlaceholder}><Text style={{ fontSize: 28 }}>{PLATFORM_ICONS[product.platform] ?? '🛒'}</Text></View>
           )}

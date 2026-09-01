@@ -18,6 +18,7 @@ export interface AuthUser {
 
 export interface AuthSession {
   accessToken: string;
+  refreshToken?: string;
   user: AuthUser;
   role: AppProfileId;
   permissions: string[];
@@ -99,6 +100,7 @@ export function normalizeAuthSession(
 
   return {
     accessToken,
+    refreshToken: partial.refreshToken ?? (payload.refreshToken as string | undefined) ?? (payload.refresh_token as string | undefined),
     user,
     role: partial.role ?? built.role,
     permissions: partial.permissions ?? built.permissions,
