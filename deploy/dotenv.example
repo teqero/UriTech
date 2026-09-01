@@ -1,0 +1,42 @@
+# UriTech — Variáveis de ambiente de produção (Docker)
+# Copie para deploy/.env e preencha os valores sensíveis
+
+# ── Core ──
+JWT_SECRET=change-me-to-a-256-bit-secret-min-32-chars
+NODE_ENV=production
+
+# ── Database & Cache ──
+DATABASE_URL=postgresql://uritech:uritech@postgres:5432/uritech
+REDIS_URL=redis://redis:6379
+
+# ── CORS ──
+ALLOWED_ORIGINS=https://urigo.ao,https://admin.urigo.ao
+CORS_ORIGIN=
+
+# ── API pública ──
+PUBLIC_API_URL=https://api.urigo.ao
+NEXT_PUBLIC_API_URL=https://api.urigo.ao/api/v1
+
+# ── S3 / MinIO ──
+S3_ENDPOINT=http://minio:9000
+S3_BUCKET=uritech-media
+S3_ACCESS_KEY=uritech
+S3_SECRET_KEY=uritech123
+
+# ── Pagamentos (Multicaixa Express) ──
+MULTICAIXA_MERCHANT_ID=
+MULTICAIXA_API_KEY=
+MULTICAIXA_API_SECRET=
+MULTICAIXA_WEBHOOK_SECRET=
+MULTICAIXA_ENV=sandbox
+
+# ── Web Push (VAPID) ──
+# Gere com: npx web-push generate-vapid-keys
+VAPID_PUBLIC_KEY=
+VAPID_PRIVATE_KEY=
+VAPID_SUBJECT=mailto:admin@urigo.ao
+
+# ── Firebase (Push nativo) ──
+FIREBASE_PROJECT_ID=
+FIREBASE_CLIENT_EMAIL=
+FIREBASE_PRIVATE_KEY=

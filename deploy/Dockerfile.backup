@@ -1,0 +1,28 @@
+# UriTech — Container de backup automático da BD
+# Usa alpine + postgresql-client + cron para backups periódicos
+
+FROM postgres:16-alpine
+
+RUN apk add --no-cache bash gzip curl
+
+# Criar diretório de backups
+RUN mkdir -p /backups
+
+# Copiar script de backup
+COPY backup.sh /usr/local/bin/backup.sh
+RUN chmod +x /usr/local/bin/backup.sh
+
+# Variáveis de ambiente padrão (sobrescrever no docker-compose)
+ENV POSTGRES_HOST=postgres \
+    POSTGRES_PORT=5432 \
+    POSTGRES_DB=uritech \
+    POSTGRES_USER=uritech \
+    BACKUP_RETENTION_DAYS=7 \
+    BACKUP_DIR=/backups \
+    BACKUP_SCHEDULE="0 2 * * *"
+
+# Entrypoint: configura cron e mantém o container ativo
+ENTRYPOINT ["sh", "-c"]
+CMD [
+  "echo \"$BACKUP_SCHEDULE /usr/local/bin/backup.sh >> /var/log/backup.log 2>&1\" > /etc/crontabs/root && \\n   echo \"[$(date '+%Y-%m-%d %H:%M:%S')] Backup scheduler iniciado — cron: $BACKUP_SCHEDULE\" && \\n   crond -f -L /var/log/cron.log"
+]

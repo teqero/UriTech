@@ -1,6 +1,15 @@
-# Postgres local para desenvolvimento (P0 persistência)
-# Uso: docker compose -f docker-compose.dev.yml up -d
-# DATABASE_URL=postgresql://uritech:uritech@localhost:5432/uritech
+# UriTech — Stack de desenvolvimento completo (local)
+# Inclui: Postgres, Redis, MinIO (storage S3), Edge Runtime
+#
+# Uso:
+#   docker compose -f docker-compose.dev.yml up -d
+#   docker compose -f docker-compose.dev.yml down
+#
+# Serviços:
+#   Postgres :5432  — BD principal (TypeORM / Supabase)
+#   Redis    :6379  — Cache, sessions, filas, rate limit
+#   MinIO    :9000  — Storage de ficheiros (S3 API)
+#   Edge     :9001  — Supabase Edge Runtime (Deno)
 
 services:
   postgres:
@@ -14,11 +23,79 @@ services:
       - '5432:5432'
     volumes:
       - uritech_pgdata:/var/lib/postgresql/data
+      - ./supabase/migrations:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U uritech -d uritech']
       interval: 5s
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    container_name: uritech-redis
+    ports:
+      - '6379:6379'
+    volumes:
+      - uritech_redis:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    container_name: uritech-minio
+    environment:
+      MINIO_ROOT_USER: uritech
+      MINIO_ROOT_PASSWORD: uritech123
+    ports:
+      - '9000:9000'
+      - '9002:9001'
+    volumes:
+      - uritech_minio:/data
+    command: server /data --console-address ':9001'
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:9000/minio/health/live']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  createbuckets:
+    image: minio/mc:latest
+    container_name: uritech-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc alias set local http://minio:9000 uritech uritech123;
+      /usr/bin/mc mb local/uritech-media --ignore-existing;
+      /usr/bin/mc anonymous set download local/uritech-media;
+      /usr/bin/mc mb local/uritech-claims --ignore-existing;
+      /usr/bin/mc anonymous set download local/uritech-claims;
+      exit 0;
+      "
+
+  edge-runtime:
+    image: supabase/edge-runtime:v1.66.5
+    container_name: uritech-edge
+    environment:
+      SUPABASE_URL: http://localhost:54321
+      SUPABASE_SERVICE_ROLE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVyaXRlY2gtbG9jYWwiLCJyb2xlIjoic2VydmljZV9yb2xlIn0.local
+    ports:
+      - '9001:9001'
+    volumes:
+      - ./supabase/functions:/home/deno/functions:ro
+    command:
+      - start
+      - --main-service
+      - /home/deno/functions/uritech-api
+      - --port
+      - '9001'
+
 volumes:
   uritech_pgdata:
+  uritech_redis:
+  uritech_minio:

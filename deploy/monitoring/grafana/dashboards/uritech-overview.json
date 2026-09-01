@@ -1,0 +1,227 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "UriTech — Overview",
+    "tags": ["uritech", "backend"],
+    "timezone": "browser",
+    "schemaVersion": 36,
+    "refresh": "15s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Requests/sec",
+        "type": "stat",
+        "targets": [{
+          "expr": "sum(rate(http_requests_total[5m]))",
+          "legendFormat": "RPS"
+        }],
+        "gridPos": {"h": 4, "w": 4, "x": 0, "y": 0},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps",
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 100},
+                {"color": "red", "value": 500}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Error Rate",
+        "type": "stat",
+        "targets": [{
+          "expr": "sum(rate(http_requests_total{status=~\"5..\"}[5m])) / sum(rate(http_requests_total[5m])) * 100",
+          "legendFormat": "%"
+        }],
+        "gridPos": {"h": 4, "w": 4, "x": 4, "y": 0},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 1},
+                {"color": "red", "value": 5}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "P95 Latency",
+        "type": "stat",
+        "targets": [{
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "P95"
+        }],
+        "gridPos": {"h": 4, "w": 4, "x": 8, "y": 0},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 0.5},
+                {"color": "red", "value": 1}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 4,
+        "title": "Uptime",
+        "type": "stat",
+        "targets": [{
+          "expr": "up{job=\"uritech-backend\"}",
+          "legendFormat": "Up"
+        }],
+        "gridPos": {"h": 4, "w": 4, "x": 12, "y": 0},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "bool",
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "green", "value": 1}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 5,
+        "title": "Utilizadores",
+        "type": "stat",
+        "targets": [{
+          "expr": "active_users_total",
+          "legendFormat": "Total"
+        }],
+        "gridPos": {"h": 4, "w": 4, "x": 16, "y": 0}
+      },
+      {
+        "id": 6,
+        "title": "Saldo Carteiras (AOA)",
+        "type": "stat",
+        "targets": [{
+          "expr": "wallet_balance_total_aoa",
+          "legendFormat": "AOA"
+        }],
+        "gridPos": {"h": 4, "w": 4, "x": 20, "y": 0},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyAOA"
+          }
+        }
+      },
+      {
+        "id": 10,
+        "title": "Requests por minuto",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "sum(rate(http_requests_total[1m])) by (status)",
+            "legendFormat": "{{status}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4}
+      },
+      {
+        "id": 11,
+        "title": "Latência P50/P95/P99",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))",
+            "legendFormat": "P50"
+          },
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))",
+            "legendFormat": "P95"
+          },
+          {
+            "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))",
+            "legendFormat": "P99"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4}
+      },
+      {
+        "id": 20,
+        "title": "Memória (MB)",
+        "type": "timeseries",
+        "targets": [{
+          "expr": "process_resident_memory_bytes / 1024 / 1024",
+          "legendFormat": "MB"
+        }],
+        "gridPos": {"h": 6, "w": 8, "x": 0, "y": 12}
+      },
+      {
+        "id": 21,
+        "title": "CPU %",
+        "type": "timeseries",
+        "targets": [{
+          "expr": "rate(process_cpu_user_seconds_total[5m]) * 100",
+          "legendFormat": "User %"
+        }],
+        "gridPos": {"h": 6, "w": 8, "x": 8, "y": 12}
+      },
+      {
+        "id": 22,
+        "title": "Event Loop Lag (ms)",
+        "type": "timeseries",
+        "targets": [{
+          "expr": "nodejs_eventloop_lag_seconds * 1000",
+          "legendFormat": "ms"
+        }],
+        "gridPos": {"h": 6, "w": 8, "x": 16, "y": 12}
+      },
+      {
+        "id": 30,
+        "title": "Viagens em curso",
+        "type": "timeseries",
+        "targets": [{
+          "expr": "active_rides_total",
+          "legendFormat": "Rides"
+        }],
+        "gridPos": {"h": 6, "w": 6, "x": 0, "y": 18}
+      },
+      {
+        "id": 31,
+        "title": "Pedidos pendentes",
+        "type": "timeseries",
+        "targets": [{
+          "expr": "active_orders_total",
+          "legendFormat": "Orders"
+        }],
+        "gridPos": {"h": 6, "w": 6, "x": 6, "y": 18}
+      },
+      {
+        "id": 32,
+        "title": "Health Status",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "health_check_status{service=\"postgres\"}",
+            "legendFormat": "Postgres"
+          },
+          {
+            "expr": "health_check_status{service=\"redis\"}",
+            "legendFormat": "Redis"
+          },
+          {
+            "expr": "health_check_status{service=\"storage\"}",
+            "legendFormat": "MinIO"
+          }
+        ],
+        "gridPos": {"h": 6, "w": 12, "x": 12, "y": 18}
+      }
+    ]
+  },
+  "overwrite": true
+}

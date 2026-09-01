@@ -1,32 +1,134 @@
-# UriTech production stack — arquitectura inspirada no Gojek:
-#   nginx (gateway) → API NestJS + Web Consumer + Admin Portal
-#   Mobile apps: build separado via EAS (Expo)
+# UriTech — Stack de produção completo (Docker)
+# Serviços:
+#   backend    :4000  — API NestJS
+#   web-user   :3001  — Next.js (consumidor)
+#   web-admin  :3000  — Next.js (admin)
+#   postgres   :5432  — Postgres 16
+#   redis      :6379  — Cache, filas, sessions
+#   minio      :9000  — Storage S3-compatível
+#   nginx      :80/:443 — Gateway + SSL
+#   backup     —       Backup automático da BD
+#
+# Uso:
+#   cp deploy/.env.production.example deploy/.env
+#   # Edite deploy/.env
+#   docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env up -d --build
 
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: uritech-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-uritech}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-uritech}
+      POSTGRES_DB: ${POSTGRES_DB:-uritech}
+    volumes:
+      - uritech_pgdata:/var/lib/postgresql/data
+      - ../supabase/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-uritech} -d ${POSTGRES_DB:-uritech}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: uritech-redis
+    volumes:
+      - uritech_redis:/data
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio:latest
+    container_name: uritech-minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-uritech}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-uritech123}
+    volumes:
+      - uritech_minio:/data
+    command: server /data --console-address ':9001'
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:9000/minio/health/live']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  createbuckets:
+    image: minio/mc:latest
+    container_name: uritech-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc alias set local http://minio:9000 ${MINIO_ROOT_USER:-uritech} ${MINIO_ROOT_PASSWORD:-uritech123};
+      /usr/bin/mc mb local/uritech-media --ignore-existing;
+      /usr/bin/mc anonymous set download local/uritech-media;
+      /usr/bin/mc mb local/uritech-claims --ignore-existing;
+      /usr/bin/mc anonymous set download local/uritech-claims;
+      exit 0;
+      "
+    restart: on-failure
+
   backend:
     build:
       context: ..
       dockerfile: deploy/Dockerfile.backend
+    container_name: uritech-backend
     environment:
       NODE_ENV: production
       PORT: 4000
-      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost,http://localhost:8080}
-    restart: unless-stopped
+      DATABASE_URL: ${DATABASE_URL:-postgresql://uritech:uritech@postgres:5432/uritech}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      JWT_SECRET: ${JWT_SECRET}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-https://urigo.ao,https://admin.urigo.ao}
+      CORS_ORIGIN: ${CORS_ORIGIN:-}
+      PUBLIC_API_URL: ${PUBLIC_API_URL:-https://api.urigo.ao}
+      MULTICAIXA_MERCHANT_ID: ${MULTICAIXA_MERCHANT_ID}
+      MULTICAIXA_API_KEY: ${MULTICAIXA_API_KEY}
+      MULTICAIXA_API_SECRET: ${MULTICAIXA_API_SECRET}
+      MULTICAIXA_WEBHOOK_SECRET: ${MULTICAIXA_WEBHOOK_SECRET}
+      MULTICAIXA_ENV: ${MULTICAIXA_ENV:-sandbox}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:admin@urigo.ao}
+      S3_ENDPOINT: ${S3_ENDPOINT:-http://minio:9000}
+      S3_BUCKET: ${S3_BUCKET:-uritech-media}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-uritech}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-uritech123}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     healthcheck:
-      test: ['CMD', 'wget', '-qO-', 'http://localhost:4000/api/v1/services']
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:4000/api/v1/health']
       interval: 30s
-      timeout: 5s
+      timeout: 10s
       retries: 3
+      start_period: 15s
+    stop_grace_period: 30s
+    restart: unless-stopped
 
   web-user:
     build:
       context: ..
       dockerfile: deploy/Dockerfile.web-user
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost/api/v1}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.urigo.ao/api/v1}
+    container_name: uritech-web-user
     environment:
       NODE_ENV: production
       PORT: 3001
+      HOSTNAME: 0.0.0.0
     depends_on:
       - backend
     restart: unless-stopped
@@ -36,23 +138,56 @@ services:
       context: ..
       dockerfile: deploy/Dockerfile.web-admin
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost/api/v1}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.urigo.ao/api/v1}
+    container_name: uritech-web-admin
     environment:
       NODE_ENV: production
       PORT: 3000
+      HOSTNAME: 0.0.0.0
     depends_on:
       - backend
     restart: unless-stopped
 
   nginx:
     image: nginx:1.27-alpine
+    container_name: uritech-nginx
     ports:
       - '80:80'
+      - '443:443'
       - '8080:8080'
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - uritech_nginx_cache:/var/cache/nginx
     depends_on:
       - backend
       - web-user
       - web-admin
     restart: unless-stopped
+
+  backup:
+    build:
+      context: ./backup
+      dockerfile: ../Dockerfile.backup
+    container_name: uritech-backup
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-uritech}
+      POSTGRES_USER: ${POSTGRES_USER:-uritech}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-uritech}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-7}
+      BACKUP_SCHEDULE: ${BACKUP_SCHEDULE:-0 2 * * *}
+    volumes:
+      - uritech_backups:/backups
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  uritech_pgdata:
+  uritech_redis:
+  uritech_minio:
+  uritech_nginx_cache:
+  uritech_backups:

@@ -19,7 +19,11 @@ function json(data: unknown, status = 200) {
 function routePath(url: URL): string {
   const raw = url.pathname.replace(/^\/uritech-api/, '');
   const idx = raw.indexOf('/api/v1');
-  return idx >= 0 ? raw.slice(idx + '/api/v1'.length) || '/' : raw || '/';
+  let path = idx >= 0 ? raw.slice(idx + '/api/v1'.length) || '/' : raw || '/';
+  while (path.startsWith('/api/v1')) {
+    path = path.slice('/api/v1'.length) || '/';
+  }
+  return path;
 }
 
 function placeLabel(value: unknown): string {
@@ -197,7 +201,10 @@ Deno.serve(async (req) => {
 
     if (path.startsWith('/social-payments')) {
       const result = await handleSocialPayments(supabase, method, path, req, userId);
-      if (result) return json(result.body, result.status);
+      if (result) {
+        if ('raw' in result && result.raw instanceof Response) return result.raw;
+        return json(result.body, result.status);
+      }
     }
 
     return json({ message: `Route not found: ${path}` }, 404);

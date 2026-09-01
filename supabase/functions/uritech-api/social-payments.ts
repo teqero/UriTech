@@ -1,4 +1,5 @@
 import type { SupabaseClient } from 'jsr:@supabase/supabase-js@2';
+import { importFromUrl } from './social-import.ts';
 import { walletPay } from './wallet.ts';
 
 const SERVICE_FEE_RATE = 0.025;
@@ -27,71 +28,9 @@ function detectPlatform(url: string) {
   return { platform: 'other', label: 'Rede Social' };
 }
 
-function getMeta(html: string, key: string): string | undefined {
-  const patterns = [
-    new RegExp(`<meta[^>]+property=["']${key}["'][^>]+content=["']([^"']+)["']`, 'i'),
-    new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+property=["']${key}["']`, 'i'),
-    new RegExp(`<meta[^>]+name=["']${key}["'][^>]+content=["']([^"']+)["']`, 'i'),
-  ];
-  for (const re of patterns) {
-    const m = html.match(re);
-    if (m?.[1]) return m[1];
-  }
-  return undefined;
-}
-
-function parsePrice(raw?: string): number {
-  if (!raw) return 0;
-  const n = Number(raw.replace(/[^\d.,]/g, '').replace(/\./g, '').replace(',', '.'));
-  return Number.isFinite(n) && n > 0 ? n : 0;
-}
-
-function enrich(title: string, description: string, price: number, platformLabel: string) {
-  const clean = (s: string) => s.replace(/#\w+/g, '').replace(/\s+/g, ' ').trim();
-  title = clean(title) || `Produto ${platformLabel}`;
-  description = clean(description) || `Produto importado de ${platformLabel}.`;
-  if (!price && description) price = parsePrice(description);
-  return { title, description, price };
-}
-
-async function importFromUrl(url: string) {
-  const normalized = url.startsWith('http') ? url : `https://${url}`;
-  const { platform, label } = detectPlatform(normalized);
-  let html = '';
-  try {
-    const res = await fetch(normalized, {
-      headers: { 'User-Agent': 'UriPayBot/1.0', Accept: 'text/html' },
-      redirect: 'follow',
-    });
-    if (res.ok) html = (await res.text()).slice(0, 300_000);
-  } catch { /* offline demo */ }
-
-  const titleTag = html.match(/<title[^>]*>([^<]+)<\/title>/i)?.[1];
-  let title = getMeta(html, 'og:title') ?? titleTag ?? 'Produto importado';
-  let description = getMeta(html, 'og:description') ?? getMeta(html, 'description') ?? '';
-  let price = parsePrice(getMeta(html, 'og:price:amount') ?? getMeta(html, 'product:price:amount'));
-  const image = getMeta(html, 'og:image');
-  const images = image ? [image] : [];
-
-  ({ title, description, price } = enrich(title, description, price, label));
-
-  return {
-    platform,
-    platformLabel: label,
-    originalUrl: normalized,
-    title,
-    description,
-    price,
-    currency: 'AOA',
-    images,
-    videos: [] as string[],
-    sellerName: getMeta(html, 'og:site_name'),
-    metadata: { platformLabel: label, completeness: price > 0 ? 85 : 50, aiEnriched: true },
-  };
-}
-
 function mapRow(row: Record<string, unknown>) {
   const meta = (row.metadata ?? {}) as Record<string, unknown>;
+  const images = Array.isArray(row.images) ? row.images : [];
   return {
     id: row.id,
     buyerId: row.buyer_id,
@@ -107,8 +46,8 @@ function mapRow(row: Record<string, unknown>) {
     brand: row.brand,
     city: row.city,
     country: row.country,
-    images: row.images ?? [],
-    videos: row.videos ?? [],
+    images,
+    videos: Array.isArray(row.videos) ? row.videos : [],
     sellerName: row.seller_name,
     status: row.status,
     paymentStatus: row.payment_status,
@@ -139,6 +78,27 @@ function calcCheckout(record: Record<string, unknown>, body: Record<string, unkn
   return { quantity, deliveryFee, serviceFee, discount, total };
 }
 
+function importedToDb(imported: Awaited<ReturnType<typeof importFromUrl>>) {
+  return {
+    platform: imported.platform,
+    original_url: imported.originalUrl,
+    title: imported.title,
+    description: imported.description,
+    price: imported.price,
+    currency: imported.currency,
+    category: imported.category ?? null,
+    condition: imported.condition ?? null,
+    brand: imported.brand ?? null,
+    city: imported.city ?? null,
+    country: imported.country ?? null,
+    images: imported.images,
+    videos: imported.videos,
+    seller_name: imported.sellerName ?? null,
+    total: imported.price,
+    metadata: imported.metadata,
+  };
+}
+
 export async function handleSocialPayments(
   supabase: SupabaseClient,
   method: string,
@@ -146,6 +106,38 @@ export async function handleSocialPayments(
   req: Request,
   userId: string | null,
 ) {
+  if (path === '/social-payments/image' && method === 'GET') {
+    const imageUrl = new URL(req.url).searchParams.get('url');
+    if (!imageUrl?.startsWith('http')) {
+      return { status: 400, body: { message: 'URL de imagem inválida' } };
+    }
+    try {
+      const res = await fetch(imageUrl, {
+        headers: {
+          'User-Agent': 'facebookexternalhit/1.1',
+          Accept: 'image/*,*/*',
+          Referer: new URL(imageUrl).origin,
+        },
+        redirect: 'follow',
+      });
+      if (!res.ok) return { status: 404, body: { message: 'Imagem não disponível' } };
+      const contentType = res.headers.get('content-type') ?? 'image/jpeg';
+      const bytes = await res.arrayBuffer();
+      return {
+        status: 200,
+        raw: new Response(bytes, {
+          headers: {
+            'Content-Type': contentType,
+            'Cache-Control': 'public, max-age=86400',
+            'Access-Control-Allow-Origin': '*',
+          },
+        }),
+      };
+    } catch {
+      return { status: 502, body: { message: 'Não foi possível carregar a imagem' } };
+    }
+  }
+
   if (!userId) return { status: 401, body: { message: 'Utilizador não autenticado' } };
 
   if (path === '/social-payments/import' && method === 'POST') {
@@ -153,20 +145,10 @@ export async function handleSocialPayments(
     const imported = await importFromUrl(String(url ?? ''));
     const { data, error } = await supabase.from('social_payments').insert({
       buyer_id: userId,
-      platform: imported.platform,
-      original_url: imported.originalUrl,
-      title: imported.title,
-      description: imported.description,
-      price: imported.price,
-      currency: imported.currency,
-      images: imported.images,
-      videos: imported.videos,
-      seller_name: imported.sellerName,
+      ...importedToDb(imported),
       status: 'imported',
       payment_status: 'pending',
       sync_status: 'pending',
-      total: imported.price,
-      metadata: imported.metadata,
     }).select().single();
     if (error) throw error;
     return { status: 201, body: mapRow(data) };
@@ -218,7 +200,7 @@ export async function handleSocialPayments(
       await walletPay(supabase, userId, amount, `UriPay Link — ${String(record.title).slice(0, 80)}`);
     }
 
-    const { platform, label } = detectPlatform(String(record.original_url));
+    const { label } = detectPlatform(String(record.original_url));
     const syncMessage = `Recebemos o pagamento deste produto. Abra o anúncio em ${label} e marque-o como vendido.`;
 
     const { data: order, error: orderErr } = await supabase.from('orders').insert({
@@ -264,9 +246,11 @@ export async function handleSocialPayments(
   }
 
   if (action === 'sync' && method === 'POST') {
+    const imported = await importFromUrl(String(record.original_url));
     const { data, error } = await supabase.from('social_payments').update({
-      sync_status: 'synced',
-      sync_message: 'Produto marcado como vendido.',
+      ...importedToDb(imported),
+      sync_status: 'pending',
+      sync_message: 'Metadados actualizados a partir do anúncio.',
       updated_at: new Date().toISOString(),
     }).eq('id', id).select().single();
     if (error) throw error;
