@@ -12,10 +12,10 @@ import { UserEntity } from './entities/user.entity';
 import { WalletEntity } from './entities/wallet.entity';
 
 const DEMO_USERS: Omit<UserEntity, 'id' | 'createdAt'>[] = [
-  { name: 'Admin UriTech', email: 'admin@uritech.com', phone: '+244923900000001', role: 'admin', password: '' },
-  { name: 'João Silva', email: 'joao@uritech.com', phone: '+244923456789', role: 'user', password: '' },
-  { name: 'Maria Santos', email: 'maria@uritech.com', phone: '+244912345678', role: 'user', password: '' },
-  { name: 'Budi Santoso', email: 'budi@uritech.com', phone: '+244912111222', role: 'driver', password: '' },
+  { name: 'Admin UriTech', email: 'admin@uritech.com', phone: '+244923900000001', role: 'admin', password: '', emailVerified: true, twoFactorEnabled: false, failedLoginAttempts: 0, kycTier: 'verified', kycStatus: 'approved' },
+  { name: 'João Silva', email: 'joao@uritech.com', phone: '+244923456789', role: 'user', password: '', emailVerified: true, twoFactorEnabled: false, failedLoginAttempts: 0, kycTier: 'basic', kycStatus: 'approved' },
+  { name: 'Maria Santos', email: 'maria@uritech.com', phone: '+244912345678', role: 'user', password: '', emailVerified: true, twoFactorEnabled: false, failedLoginAttempts: 0, kycTier: 'verified', kycStatus: 'approved' },
+  { name: 'Budi Santoso', email: 'budi@uritech.com', phone: '+244912111222', role: 'driver', password: '', emailVerified: true, twoFactorEnabled: false, failedLoginAttempts: 0, kycTier: 'verified', kycStatus: 'approved' },
   {
     name: 'Kero Kilamba',
     email: 'warung@uritech.com',
@@ -23,6 +23,11 @@ const DEMO_USERS: Omit<UserEntity, 'id' | 'createdAt'>[] = [
     role: 'vendor',
     vendorSubtype: 'supermarket',
     password: '',
+    emailVerified: true,
+    twoFactorEnabled: false,
+    failedLoginAttempts: 0,
+    kycTier: 'premium',
+    kycStatus: 'approved',
   },
   {
     name: 'Carlos Entregador',
@@ -30,6 +35,11 @@ const DEMO_USERS: Omit<UserEntity, 'id' | 'createdAt'>[] = [
     phone: '+244923555666',
     role: 'delivery_rider',
     password: '',
+    emailVerified: true,
+    twoFactorEnabled: false,
+    failedLoginAttempts: 0,
+    kycTier: 'basic',
+    kycStatus: 'approved',
   },
 ];
 
