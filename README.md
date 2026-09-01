@@ -52,7 +52,10 @@ Baseado no Gojek Asphalt Design System:
 ```bash
 cd UriTech
 npm install
+npm run db:up
 ```
+
+`npm run db:up` sobe as dependências locais obrigatórias do backend: Postgres, Redis e MinIO.
 
 ## Executar
 
@@ -62,9 +65,16 @@ npm install
 npm run dev
 ```
 
+O script faz um build inicial de `@uritech/shared` antes de arrancar os restantes serviços, para evitar conflitos de escrita em `packages/shared/dist`.
+
+Pré-requisito: deixe `npm run db:up` ativo antes do primeiro arranque, caso contrário o backend não abre a porta `4000`.
+
 ### Individualmente
 
 ```bash
+# Dependências locais do backend (primeira vez)
+npm run db:up
+
 # Backend API
 npm run dev:backend        # http://localhost:4000/api/v1
 
@@ -80,18 +90,22 @@ npm run dev:mobile-vendor  # Expo - porta 8083
 ### Mobile User (telemóvel físico)
 
 ```bash
-# 1. Backend (obrigatório para UriProva e seguradoras)
+# 1. Dependências locais (obrigatório para backend e UriProva)
+npm run db:up
+
+# 2. Backend (obrigatório para UriProva e seguradoras)
 npm run dev:backend
 
-# 2. App no telemóvel
+# 3. App no telemóvel
 cd apps/mobile-user
 npm run dev:usb          # USB + adb reverse
 # ou
 npm run dev              # Wi‑Fi (LAN)
 
-# 3. Redireccionar API e Metro (USB)
+# 4. Redireccionar API, Metro e storage local (USB)
 adb reverse tcp:4000 tcp:4000
 adb reverse tcp:8084 tcp:8084
+adb reverse tcp:9000 tcp:9000
 ```
 
 Opcional: crie `apps/mobile-user/.env` com `EXPO_PUBLIC_API_URL=http://SEU_IP:4000/api/v1`.
