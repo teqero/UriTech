@@ -45,3 +45,7 @@ coverage/
 
 .vercel
 .env*
+
+# Local test artifacts (contain credentials)
+login.json
+register.json

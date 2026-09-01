@@ -8,7 +8,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "turbo run dev",
+    "dev": "npm run build --workspace=@uritech/shared && turbo run dev --filter=!@uritech/shared",
     "start:all": "powershell -ExecutionPolicy Bypass -File ./start-all.ps1",
     "start:all:kill": "powershell -ExecutionPolicy Bypass -File ./start-all.ps1 -KillPorts",
     "deploy:mobile-web": "npx vercel link --project web-user --yes && npx vercel deploy --prod --yes --local-config apps/mobile-user/vercel.json",
@@ -61,5 +61,9 @@
     },
     "react-native": "0.81.5"
   },
-  "packageManager": "npm@11.12.1"
+  "packageManager": "npm@11.12.1",
+  "dependencies": {
+    "@aws-sdk/s3-request-presigner": "^3.1102.0",
+    "socket.io-client": "^4.8.3"
+  }
 }
