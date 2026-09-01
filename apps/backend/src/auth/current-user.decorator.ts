@@ -5,11 +5,21 @@ export interface JwtUserPayload {
   email: string;
   role: string;
   vendorSubtype?: string;
+  kycTier?: string;
+  jti?: string;
 }
 
 export const CurrentUser = createParamDecorator(
-  (_data: unknown, ctx: ExecutionContext): JwtUserPayload => {
+  (data: keyof JwtUserPayload | 'sub' | undefined, ctx: ExecutionContext): JwtUserPayload | string => {
     const request = ctx.switchToHttp().getRequest();
-    return request.user;
+    const user = request.user as JwtUserPayload;
+    if (!user) return undefined as any;
+
+    // Mapear 'sub' (do JWT) para 'userId'
+    const key = data === 'sub' ? 'userId' : data;
+    if (key) {
+      return (user as any)[key] as string;
+    }
+    return user;
   },
 );
