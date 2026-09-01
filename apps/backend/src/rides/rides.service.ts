@@ -1,44 +1,23 @@
-import { Injectable, Optional } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Ride, RideStatus } from '@uritech/shared';
 import { Repository } from 'typeorm';
-import { isDatabaseEnabled } from '../database/database.config';
 import { RideEntity } from '../database/entities/ride.entity';
+import { RidesEventsService, type RideUpdatePayload } from './rides-events.service';
 
 @Injectable()
 export class RidesService {
-  private memoryRides: Ride[] = [
-    {
-      id: '1',
-      userId: '2',
-      driverId: '4',
-      status: 'completed',
-      mode: 'fixed',
-      pickup: { latitude: -8.8383, longitude: 13.2344, address: 'Luanda Sul' },
-      destination: { latitude: -8.8167, longitude: 13.2344, address: 'Talatona' },
-      fare: 1200,
-      distance: 5400,
-      duration: 1080,
-      vehicleType: 'standard',
-      createdAt: new Date().toISOString(),
-    },
-  ];
-
   constructor(
-    @Optional()
     @InjectRepository(RideEntity)
-    private readonly ridesRepo?: Repository<RideEntity>,
+    private readonly ridesRepo: Repository<RideEntity>,
+    private readonly eventsService: RidesEventsService,
   ) {}
-
-  private get useDb() {
-    return isDatabaseEnabled() && !!this.ridesRepo;
-  }
 
   private toRide(entity: RideEntity): Ride {
     return {
       id: entity.id,
       userId: entity.userId,
-      driverId: entity.driverId,
+      driverId: entity.driverId ?? undefined,
       status: entity.status,
       mode: entity.mode,
       pickup: entity.pickup,
@@ -52,88 +31,83 @@ export class RidesService {
   }
 
   async findAll() {
-    if (this.useDb) {
-      const rows = await this.ridesRepo!.find({ order: { createdAt: 'DESC' } });
-      return rows.map((r) => this.toRide(r));
-    }
-    return this.memoryRides;
+    const rows = await this.ridesRepo.find({ order: { createdAt: 'DESC' } });
+    return rows.map((r) => this.toRide(r));
   }
 
   async findByStatus(status: RideStatus) {
-    if (this.useDb) {
-      const rows = await this.ridesRepo!.find({
-        where: { status },
-        order: { createdAt: 'DESC' },
-      });
-      return rows.map((r) => this.toRide(r));
-    }
-    return this.memoryRides.filter((r) => r.status === status);
+    const rows = await this.ridesRepo.find({
+      where: { status },
+      order: { createdAt: 'DESC' },
+    });
+    return rows.map((r) => this.toRide(r));
   }
 
   async findById(id: string) {
-    if (this.useDb) {
-      const row = await this.ridesRepo!.findOne({ where: { id } });
-      return row ? this.toRide(row) : undefined;
-    }
-    return this.memoryRides.find((r) => r.id === id);
+    const row = await this.ridesRepo.findOne({ where: { id } });
+    return row ? this.toRide(row) : undefined;
   }
 
   async findByUser(userId: string) {
-    if (this.useDb) {
-      const rows = await this.ridesRepo!.find({
-        where: { userId },
-        order: { createdAt: 'DESC' },
-      });
-      return rows.map((r) => this.toRide(r));
-    }
-    return this.memoryRides.filter((r) => r.userId === userId);
+    const rows = await this.ridesRepo.find({
+      where: { userId },
+      order: { createdAt: 'DESC' },
+    });
+    return rows.map((r) => this.toRide(r));
   }
 
   async findByDriver(driverId: string) {
-    if (this.useDb) {
-      const rows = await this.ridesRepo!.find({
-        where: { driverId },
-        order: { createdAt: 'DESC' },
-      });
-      return rows.map((r) => this.toRide(r));
-    }
-    return this.memoryRides.filter((r) => r.driverId === driverId);
+    const rows = await this.ridesRepo.find({
+      where: { driverId },
+      order: { createdAt: 'DESC' },
+    });
+    return rows.map((r) => this.toRide(r));
   }
 
   async create(data: Omit<Ride, 'id' | 'createdAt'>) {
-    if (this.useDb) {
-      const saved = await this.ridesRepo!.save(
-        this.ridesRepo!.create({
-          ...data,
-          status: data.status ?? 'searching',
-        }),
-      );
-      return this.toRide(saved);
-    }
+    const saved = await this.ridesRepo.save(
+      this.ridesRepo.create({
+        ...data,
+        status: data.status ?? 'searching',
+      }),
+    );
+    const ride = this.toRide(saved);
 
-    const ride: Ride = {
-      ...data,
-      id: String(this.memoryRides.length + 1),
-      createdAt: new Date().toISOString(),
-    };
-    this.memoryRides.unshift(ride);
+    this.eventsService.emitRideUpdate({
+      rideId: ride.id,
+      ride,
+      event: 'status_changed',
+    });
+
     return ride;
   }
 
   async updateStatus(id: string, status: RideStatus, driverId?: string) {
-    if (this.useDb) {
-      const row = await this.ridesRepo!.findOne({ where: { id } });
-      if (!row) return null;
-      row.status = status;
-      if (driverId) row.driverId = driverId;
-      const saved = await this.ridesRepo!.save(row);
-      return this.toRide(saved);
+    const row = await this.ridesRepo.findOne({ where: { id } });
+    if (!row) return null;
+
+    const previousStatus = row.status;
+    row.status = status;
+    if (driverId) row.driverId = driverId;
+
+    const saved = await this.ridesRepo.save(row);
+    const ride = this.toRide(saved);
+
+    let event: RideUpdatePayload['event'] = 'status_changed';
+    if (status === 'driver_found' && previousStatus === 'searching') {
+      event = 'driver_assigned';
+    } else if (status === 'completed') {
+      event = 'completed';
+    } else if (status === 'cancelled') {
+      event = 'cancelled';
     }
 
-    const ride = this.memoryRides.find((r) => r.id === id);
-    if (!ride) return null;
-    ride.status = status;
-    if (driverId) ride.driverId = driverId;
+    this.eventsService.emitRideUpdate({
+      rideId: ride.id,
+      ride,
+      event,
+    });
+
     return ride;
   }
 }

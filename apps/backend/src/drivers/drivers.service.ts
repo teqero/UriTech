@@ -1,13 +1,16 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
 import type { Location } from '@uritech/shared';
+import { Repository } from 'typeorm';
+import { DriverEntity } from '../database/entities/driver.entity';
 
-export interface DriverEntity {
+export interface DriverProfile {
   id: string;
   userId: string;
   name: string;
   phone: string;
-  vehicleType: 'motorcycle' | 'car';
-  vehiclePlate: string;
+  vehicleType: string;
+  vehiclePlate?: string;
   rating: number;
   isOnline: boolean;
   currentLocation?: Location;
@@ -15,73 +18,91 @@ export interface DriverEntity {
   totalEarnings: number;
 }
 
-export type CreateDriverInput = Omit<DriverEntity, 'id' | 'rating' | 'totalRides' | 'totalEarnings' | 'currentLocation'>;
+export type CreateDriverInput = {
+  userId: string;
+  name: string;
+  phone: string;
+  vehicleType?: string;
+  vehiclePlate?: string;
+};
 
 @Injectable()
 export class DriversService {
-  private drivers: DriverEntity[] = [
-    {
-      id: '1',
-      userId: '5',
-      name: 'Budi Santoso',
-      phone: '+5511999990005',
-      vehicleType: 'motorcycle',
-      vehiclePlate: 'B 1234 XYZ',
-      rating: 4.9,
-      isOnline: true,
-      currentLocation: { latitude: -6.2088, longitude: 106.8456 },
-      totalRides: 1250,
-      totalEarnings: 45000,
-    },
-    {
-      id: '2',
-      userId: '6',
-      name: 'Andi Wijaya',
-      phone: '+5511999990006',
-      vehicleType: 'car',
-      vehiclePlate: 'B 5678 ABC',
-      rating: 4.7,
-      isOnline: false,
-      totalRides: 890,
-      totalEarnings: 62000,
-    },
-  ];
+  constructor(
+    @InjectRepository(DriverEntity)
+    private readonly driversRepo: Repository<DriverEntity>,
+  ) {}
 
-  findAll() {
-    return this.drivers;
-  }
-
-  findById(id: string) {
-    return this.drivers.find((d) => d.id === id);
-  }
-
-  findOnline() {
-    return this.drivers.filter((d) => d.isOnline);
-  }
-
-  toggleOnline(id: string) {
-    const driver = this.drivers.find((d) => d.id === id);
-    if (!driver) return null;
-    driver.isOnline = !driver.isOnline;
-    return driver;
-  }
-
-  updateLocation(id: string, location: Location) {
-    const driver = this.drivers.find((d) => d.id === id);
-    if (!driver) return null;
-    driver.currentLocation = location;
-    return driver;
-  }
-
-  create(data: CreateDriverInput) {
-    const driver: DriverEntity = {
-      ...data,
-      id: String(this.drivers.length + 1),
-      rating: 5,
-      totalRides: 0,
-      totalEarnings: 0,
+  private toProfile(entity: DriverEntity): DriverProfile {
+    return {
+      id: entity.id,
+      userId: entity.userId,
+      name: entity.userId, // populado pelo controller/service superior se necessário
+      phone: entity.userId,
+      vehicleType: entity.vehicleType,
+      vehiclePlate: entity.vehiclePlate,
+      rating: Number(entity.rating),
+      isOnline: entity.isOnline,
+      currentLocation:
+        entity.currentLatitude != null && entity.currentLongitude != null
+          ? {
+              latitude: Number(entity.currentLatitude),
+              longitude: Number(entity.currentLongitude),
+            }
+          : undefined,
+      totalRides: entity.totalRides,
+      totalEarnings: Number(entity.totalEarnings),
     };
-    this.drivers.push(driver);
-    return driver;
+  }
+
+  async findAll() {
+    const rows = await this.driversRepo.find({ order: { createdAt: 'DESC' } });
+    return rows.map((r) => this.toProfile(r));
+  }
+
+  async findById(id: string) {
+    const row = await this.driversRepo.findOne({ where: { id } });
+    return row ? this.toProfile(row) : null;
+  }
+
+  async findOnline() {
+    const rows = await this.driversRepo.find({
+      where: { isOnline: true, active: true },
+      order: { currentLocationUpdatedAt: 'DESC' },
+    });
+    return rows.map((r) => this.toProfile(r));
+  }
+
+  async toggleOnline(id: string) {
+    const row = await this.driversRepo.findOne({ where: { id } });
+    if (!row) return null;
+    row.isOnline = !row.isOnline;
+    const saved = await this.driversRepo.save(row);
+    return this.toProfile(saved);
+  }
+
+  async updateLocation(id: string, location: Location) {
+    const row = await this.driversRepo.findOne({ where: { id } });
+    if (!row) return null;
+    row.currentLatitude = location.latitude;
+    row.currentLongitude = location.longitude;
+    row.currentLocationUpdatedAt = new Date();
+    const saved = await this.driversRepo.save(row);
+    return this.toProfile(saved);
+  }
+
+  async create(data: CreateDriverInput) {
+    const saved = await this.driversRepo.save(
+      this.driversRepo.create({
+        userId: data.userId,
+        vehicleType: data.vehicleType ?? 'standard',
+        vehiclePlate: data.vehiclePlate,
+        rating: 5,
+        totalRides: 0,
+        totalEarnings: 0,
+        isOnline: false,
+      }),
+    );
+    return this.toProfile(saved);
   }
 }

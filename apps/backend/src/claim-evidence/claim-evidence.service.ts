@@ -1,9 +1,8 @@
-import { BadRequestException, Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { ClaimEvidenceReport, Location } from '@uritech/shared';
 import { generateClaimReference, generateIntegrityHash, URIPROVA_DEFAULT_LOCATION } from '@uritech/shared';
 import { Repository } from 'typeorm';
-import { isDatabaseEnabled } from '../database/database.config';
 import { ClaimEvidenceEntity } from '../database/entities/claim-evidence.entity';
 import { InsurersService } from '../insurers/insurers.service';
 import { SubmitClaimDto } from './dto/submit-claim.dto';
@@ -11,18 +10,12 @@ import { SubmitClaimDto } from './dto/submit-claim.dto';
 @Injectable()
 export class ClaimEvidenceService {
   private readonly logger = new Logger(ClaimEvidenceService.name);
-  private memoryReports: ClaimEvidenceReport[] = [];
 
   constructor(
     private insurersService: InsurersService,
-    @Optional()
     @InjectRepository(ClaimEvidenceEntity)
-    private readonly claimsRepo?: Repository<ClaimEvidenceEntity>,
+    private readonly claimsRepo: Repository<ClaimEvidenceEntity>,
   ) {}
-
-  private get useDb() {
-    return isDatabaseEnabled() && !!this.claimsRepo;
-  }
 
   private toReport(row: ClaimEvidenceEntity): ClaimEvidenceReport {
     return {
@@ -45,31 +38,21 @@ export class ClaimEvidenceService {
   }
 
   async findAll(insurerId?: string) {
-    if (this.useDb) {
-      const rows = await this.claimsRepo!.find({
-        where: insurerId ? { insurerId } : {},
-        order: { createdAt: 'DESC' },
-      });
-      return rows.map((r) => this.toReport(r));
-    }
-    if (insurerId) return this.memoryReports.filter((r) => r.insurerId === insurerId);
-    return this.memoryReports;
+    const rows = await this.claimsRepo.find({
+      where: insurerId ? { insurerId } : {},
+      order: { createdAt: 'DESC' },
+    });
+    return rows.map((r) => this.toReport(r));
   }
 
   async findById(id: string) {
-    if (this.useDb) {
-      const row = await this.claimsRepo!.findOne({ where: { id } });
-      return row ? this.toReport(row) : undefined;
-    }
-    return this.memoryReports.find((r) => r.id === id);
+    const row = await this.claimsRepo.findOne({ where: { id } });
+    return row ? this.toReport(row) : undefined;
   }
 
   async findByReference(reference: string) {
-    if (this.useDb) {
-      const row = await this.claimsRepo!.findOne({ where: { reference } });
-      return row ? this.toReport(row) : undefined;
-    }
-    return this.memoryReports.find((r) => r.reference === reference);
+    const row = await this.claimsRepo.findOne({ where: { reference } });
+    return row ? this.toReport(row) : undefined;
   }
 
   private normalizeLocation(dto: SubmitClaimDto['location']): Location {
@@ -96,50 +79,28 @@ export class ClaimEvidenceService {
       dto.insurerId,
       dto.policyNumber,
       dto.incidentType,
-      ...dto.media.map((m) => `${m.type}:${m.capturedAt}:${m.base64?.slice(0, 32) ?? m.uri ?? ''}`),
+      ...dto.media.map((m) => `${m.type}:${m.capturedAt}:${m.uri ?? ''}`),
     ]);
 
     const now = new Date();
-    const report: ClaimEvidenceReport = {
-      id: `clm-${Date.now()}`,
-      reference,
-      insurerId: dto.insurerId,
-      insurerName: insurer.name,
-      policyNumber: dto.policyNumber,
-      insuredName: dto.insuredName,
-      insuredPhone: dto.insuredPhone,
-      incidentType: dto.incidentType,
-      incidentDescription: dto.incidentDescription,
-      location,
-      media: dto.media,
-      status: 'submitted',
-      integrityHash,
-      submittedAt: now.toISOString(),
-      createdAt: now.toISOString(),
-    };
-
-    if (this.useDb) {
-      await this.claimsRepo!.save(
-        this.claimsRepo!.create({
-          id: report.id,
-          reference: report.reference,
-          insurerId: report.insurerId,
-          insurerName: report.insurerName,
-          policyNumber: report.policyNumber,
-          insuredName: report.insuredName,
-          insuredPhone: report.insuredPhone,
-          incidentType: report.incidentType,
-          incidentDescription: report.incidentDescription,
-          location: report.location,
-          media: report.media,
-          status: report.status,
-          integrityHash: report.integrityHash,
-          submittedAt: now,
-        }),
-      );
-    } else {
-      this.memoryReports.unshift(report);
-    }
+    const report = await this.claimsRepo.save(
+      this.claimsRepo.create({
+        id: `clm-${Date.now()}`,
+        reference,
+        insurerId: dto.insurerId,
+        insurerName: insurer.name,
+        policyNumber: dto.policyNumber,
+        insuredName: dto.insuredName,
+        insuredPhone: dto.insuredPhone,
+        incidentType: dto.incidentType,
+        incidentDescription: dto.incidentDescription,
+        location,
+        media: dto.media,
+        status: 'submitted',
+        integrityHash,
+        submittedAt: now,
+      }),
+    );
 
     await this.insurersService.incrementClaimCount(dto.insurerId);
 
@@ -162,15 +123,14 @@ export class ClaimEvidenceService {
           latitude: m.latitude,
           longitude: m.longitude,
           durationSec: m.durationSec,
-          payloadIncluded: Boolean(m.base64),
-          base64: m.base64,
+          url: m.uri,
         })),
-        submittedAt: report.submittedAt,
+        submittedAt: now.toISOString(),
       });
     }
 
     return {
-      report,
+      report: this.toReport(report),
       feeCharged: insurer.platformFeePerClaim,
       message: 'Evidências enviadas à seguradora com sucesso',
     };

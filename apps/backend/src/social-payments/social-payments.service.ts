@@ -2,7 +2,6 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
-  Optional,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type {
@@ -13,7 +12,6 @@ import type {
 } from '@uritech/shared';
 import { DEFAULT_ORIGIN } from '@uritech/shared';
 import { Repository } from 'typeorm';
-import { isDatabaseEnabled } from '../database/database.config';
 import { SocialPaymentEntity } from '../database/entities/social-payment.entity';
 import { NotificationsService } from '../notifications/notifications.service';
 import { OrdersService } from '../orders/orders.service';
@@ -29,8 +27,6 @@ const DELIVERY_FEES = { pickup: 0, urigo: 1500, none: 0 } as const;
 
 @Injectable()
 export class SocialPaymentsService {
-  private memoryRecords: SocialPaymentRecord[] = [];
-
   constructor(
     private readonly importEngine: SocialImportEngine,
     private readonly platformDetector: PlatformDetectorService,
@@ -39,14 +35,9 @@ export class SocialPaymentsService {
     private readonly ordersService: OrdersService,
     private readonly usersService: UsersService,
     private readonly notificationsService: NotificationsService,
-    @Optional()
     @InjectRepository(SocialPaymentEntity)
-    private readonly repo?: Repository<SocialPaymentEntity>,
+    private readonly repo: Repository<SocialPaymentEntity>,
   ) {}
-
-  private get useDb() {
-    return isDatabaseEnabled() && !!this.repo;
-  }
 
   async importProduct(buyerId: string, url: string): Promise<SocialPaymentRecord> {
     const product = await this.importEngine.importFromUrl(url);
@@ -61,15 +52,12 @@ export class SocialPaymentsService {
   }
 
   async listByBuyer(buyerId: string): Promise<SocialPaymentRecord[]> {
-    if (this.useDb) {
-      const rows = await this.repo!.find({
-        where: { buyerId },
-        order: { createdAt: 'DESC' },
-        take: 50,
-      });
-      return rows.map((r) => this.toRecord(r));
-    }
-    return this.memoryRecords.filter((r) => r.buyerId === buyerId);
+    const rows = await this.repo.find({
+      where: { buyerId },
+      order: { createdAt: 'DESC' },
+      take: 50,
+    });
+    return rows.map((r) => this.toRecord(r));
   }
 
   calculateCheckout(record: SocialPaymentRecord, dto: CheckoutSocialPaymentDto): SocialPaymentCheckout {
@@ -213,73 +201,48 @@ export class SocialPaymentsService {
   }
 
   private async saveImported(buyerId: string, product: ImportedSocialProduct): Promise<SocialPaymentRecord> {
-    const data = {
-      buyerId,
-      platform: product.platform,
-      originalUrl: product.originalUrl,
-      title: product.title,
-      description: product.description,
-      price: product.price,
-      currency: product.currency,
-      category: product.category,
-      condition: product.condition,
-      brand: product.brand,
-      city: product.city,
-      country: product.country,
-      images: product.images,
-      videos: product.videos,
-      sellerName: product.sellerName,
-      status: 'imported' as const,
-      paymentStatus: 'pending' as const,
-      syncStatus: 'pending' as const,
-      quantity: 1,
-      deliveryFee: 0,
-      serviceFee: 0,
-      discount: 0,
-      total: product.price,
-      metadata: { completeness: product.completeness, aiEnriched: product.aiEnriched, platformLabel: product.platformLabel },
-    };
-
-    if (this.useDb) {
-      const saved = await this.repo!.save(this.repo!.create(data));
-      return this.toRecord(saved);
-    }
-
-    const record: SocialPaymentRecord = {
-      id: `sp-${Date.now()}`,
-      ...data,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    this.memoryRecords.unshift(record);
-    return record;
+    const saved = await this.repo.save(
+      this.repo.create({
+        buyerId,
+        platform: product.platform,
+        originalUrl: product.originalUrl,
+        title: product.title,
+        description: product.description,
+        price: product.price,
+        currency: product.currency,
+        category: product.category,
+        condition: product.condition,
+        brand: product.brand,
+        city: product.city,
+        country: product.country,
+        images: product.images,
+        videos: product.videos,
+        sellerName: product.sellerName,
+        status: 'imported',
+        paymentStatus: 'pending',
+        syncStatus: 'pending',
+        quantity: 1,
+        deliveryFee: 0,
+        serviceFee: 0,
+        discount: 0,
+        total: product.price,
+        metadata: { completeness: product.completeness, aiEnriched: product.aiEnriched, platformLabel: product.platformLabel },
+      }),
+    );
+    return this.toRecord(saved);
   }
 
   private async findRecord(id: string): Promise<SocialPaymentRecord | undefined> {
-    if (this.useDb) {
-      const row = await this.repo!.findOne({ where: { id } });
-      return row ? this.toRecord(row) : undefined;
-    }
-    return this.memoryRecords.find((r) => r.id === id);
+    const row = await this.repo.findOne({ where: { id } });
+    return row ? this.toRecord(row) : undefined;
   }
 
   private async updateRecord(id: string, patch: Partial<SocialPaymentRecord>): Promise<SocialPaymentRecord> {
-    if (this.useDb) {
-      const row = await this.repo!.findOne({ where: { id } });
-      if (!row) throw new NotFoundException('Pagamento não encontrado');
-      Object.assign(row, patch);
-      const saved = await this.repo!.save(row);
-      return this.toRecord(saved);
-    }
-
-    const idx = this.memoryRecords.findIndex((r) => r.id === id);
-    if (idx === -1) throw new NotFoundException('Pagamento não encontrado');
-    this.memoryRecords[idx] = {
-      ...this.memoryRecords[idx],
-      ...patch,
-      updatedAt: new Date().toISOString(),
-    };
-    return this.memoryRecords[idx];
+    const row = await this.repo.findOne({ where: { id } });
+    if (!row) throw new NotFoundException('Pagamento não encontrado');
+    Object.assign(row, patch);
+    const saved = await this.repo.save(row);
+    return this.toRecord(saved);
   }
 
   private toRecord(entity: SocialPaymentEntity): SocialPaymentRecord {
@@ -287,7 +250,7 @@ export class SocialPaymentsService {
     return {
       id: entity.id,
       buyerId: entity.buyerId,
-      sellerId: entity.sellerId,
+      sellerId: entity.sellerId ?? undefined,
       platform: entity.platform,
       originalUrl: entity.originalUrl,
       title: entity.title,
@@ -324,7 +287,6 @@ export class SocialPaymentsService {
     msg: { title: string; body: string },
     record: SocialPaymentRecord,
   ) {
-    // Sem credenciais de redes sociais — apenas registo para canal futuro / OAuth
     console.info(`[SocialPayment] Notificação vendedor (${record.sellerName}): ${msg.title} — ${record.originalUrl}`);
   }
 }

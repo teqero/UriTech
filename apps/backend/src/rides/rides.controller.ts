@@ -1,3 +1,4 @@
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody, ApiQuery, ApiParam } from '@nestjs/swagger';
 import {
   Body,
   Controller,
@@ -18,6 +19,8 @@ import { WalletService } from '../wallet/wallet.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import type { RideStatus } from '@uritech/shared';
 
+@ApiTags('Rides')
+@ApiBearerAuth('JWT-auth')
 @Controller('rides')
 export class RidesController {
   constructor(
@@ -28,6 +31,11 @@ export class RidesController {
 
   @Public()
   @Get()
+  @ApiOperation({ summary: 'Listar corridas' })
+  @ApiQuery({ name: 'status', required: false, description: 'Filtrar por estado' })
+  @ApiQuery({ name: 'userId', required: false })
+  @ApiQuery({ name: 'driverId', required: false })
+  @ApiResponse({ status: 200, description: 'Lista de corridas' })
   findAll(
     @Query('status') status?: RideStatus,
     @Query('userId') userId?: string,
@@ -44,11 +52,19 @@ export class RidesController {
 
   @Public()
   @Get(':id')
+  @ApiOperation({ summary: 'Detalhes da corrida' })
+  @ApiParam({ name: 'id' })
+  @ApiResponse({ status: 200 })
+  @ApiResponse({ status: 404, description: 'Corrida não encontrada' })
   findOne(@Param('id') id: string) {
     return this.ridesService.findById(id);
   }
 
   @Post()
+  @ApiOperation({ summary: 'Solicitar corrida', description: 'Cria nova corrida e debita saldo se necessário' })
+  @ApiBody({ type: CreateRideDto })
+  @ApiResponse({ status: 201, description: 'Corrida criada' })
+  @ApiResponse({ status: 400, description: 'Dados inválidos' })
   async create(@Body() body: CreateRideDto, @CurrentUser() user: JwtUserPayload) {
     const destination = body.destination.address
       ? body.destination
@@ -84,6 +100,11 @@ export class RidesController {
   }
 
   @Patch(':id/status')
+  @ApiOperation({ summary: 'Actualizar estado', description: 'Driver aceita/inicia/termina; User cancela' })
+  @ApiParam({ name: 'id' })
+  @ApiResponse({ status: 200 })
+  @ApiResponse({ status: 403, description: 'Não autorizado' })
+  @ApiResponse({ status: 404, description: 'Corrida não encontrada' })
   async updateStatus(
     @Param('id') id: string,
     @Body('status') status: RideStatus,

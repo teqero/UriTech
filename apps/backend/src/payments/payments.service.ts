@@ -1,4 +1,7 @@
 import { BadRequestException, Injectable, Logger, NotFoundException, OnModuleInit, UnauthorizedException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { MulticaixaReferenceEntity } from '../database/entities/multicaixa-reference.entity';
 import { SettingsService } from '../settings/settings.service';
 import { WalletService } from '../wallet/wallet.service';
 import type { InitiateMulticaixaDto, MulticaixaWebhookDto } from './dto/multicaixa.dto';
@@ -28,12 +31,14 @@ export interface MulticaixaInitiation {
 @Injectable()
 export class PaymentsService implements OnModuleInit {
   private readonly logger = new Logger(PaymentsService.name);
+  /** In-memory cache de transações processadas (só para GET /status /transactions rápidas). Não é fonte de verdade. */
   private transactions: PaymentTransaction[] = [];
-  private pendingByReference = new Map<string, { userId: string; amount: number }>();
 
   constructor(
     private readonly settingsService: SettingsService,
     private readonly walletService: WalletService,
+    @InjectRepository(MulticaixaReferenceEntity)
+    private readonly mcxRepo: Repository<MulticaixaReferenceEntity>,
   ) {}
 
   onModuleInit() {
@@ -45,15 +50,26 @@ export class PaymentsService implements OnModuleInit {
     }
   }
 
-  initiateWalletTopup(userId: string, dto: InitiateMulticaixaDto): MulticaixaInitiation {
+  async initiateWalletTopup(userId: string, dto: InitiateMulticaixaDto): Promise<MulticaixaInitiation> {
     const status = this.getMulticaixaStatus();
     if (process.env.NODE_ENV === 'production' && !status.configured) {
       throw new BadRequestException('Multicaixa não configurado. Defina MULTICAIXA_API_KEY e MULTICAIXA_MERCHANT_ID.');
     }
     const reference = `MCX-${Date.now().toString(36).toUpperCase()}`;
     const merchantRef = `wallet-topup:${userId}:${reference}`;
+    const expiresAt = new Date(Date.now() + 15 * 60_000);
 
-    this.pendingByReference.set(reference, { userId, amount: dto.amount });
+    await this.mcxRepo.save(
+      this.mcxRepo.create({
+        reference,
+        merchantRef,
+        userId,
+        amount: dto.amount,
+        currency: 'AOA',
+        status: 'pending',
+        expiresAt,
+      }),
+    );
 
     return {
       reference,
@@ -68,15 +84,16 @@ export class PaymentsService implements OnModuleInit {
   }
 
   async simulateWalletTopup(userId: string, reference: string) {
-    const pending = this.pendingByReference.get(reference);
+    const pending = await this.mcxRepo.findOne({ where: { reference } });
     if (!pending) throw new NotFoundException('Referência não encontrada ou expirada');
     if (pending.userId !== userId) throw new BadRequestException('Referência de outro utilizador');
+    if (pending.status !== 'pending') throw new BadRequestException('Referência já processada');
 
     return this.handleMulticaixaWebhook({
       reference,
-      amount: pending.amount,
+      amount: Number(pending.amount),
       status: 'paid',
-      merchantRef: `wallet-topup:${userId}:${reference}`,
+      merchantRef: pending.merchantRef,
       currency: 'AOA',
     });
   }
@@ -88,17 +105,33 @@ export class PaymentsService implements OnModuleInit {
     const success = ['paid', 'success', 'completed', 'approved', 'pago'].includes(normalized);
 
     const userId = this.parseWalletUserId(payload.merchantRef);
-    const pending = this.pendingByReference.get(payload.reference);
+
+    /** Idempotência: se já existe referência processada com sucesso, não creditar de novo. */
+    const existing = await this.mcxRepo.findOne({ where: { reference: payload.reference } });
+    if (existing && existing.status === 'paid') {
+      this.logger.warn(`Webhook duplicado ignorado: ref=${payload.reference}`);
+      return {
+        id: existing.id,
+        provider: 'multicaixa',
+        reference: payload.reference,
+        amount: Number(payload.amount),
+        currency: payload.currency ?? 'AOA',
+        status: 'already_paid',
+        merchantRef: payload.merchantRef,
+        userId: existing.userId,
+        receivedAt: new Date().toISOString(),
+      };
+    }
 
     const tx: PaymentTransaction = {
-      id: String(this.transactions.length + 1),
+      id: existing?.id ?? `mcx-${Date.now().toString(36)}`,
       provider: 'multicaixa',
       reference: payload.reference,
       amount: payload.amount,
       currency: payload.currency ?? 'AOA',
       status: payload.status,
       merchantRef: payload.merchantRef,
-      userId: userId ?? pending?.userId,
+      userId: userId ?? existing?.userId,
       receivedAt: new Date().toISOString(),
     };
     this.transactions.unshift(tx);
@@ -106,10 +139,13 @@ export class PaymentsService implements OnModuleInit {
 
     if (success) {
       this.activateMulticaixaIntegration();
-      const creditUserId = userId ?? pending?.userId;
+      const creditUserId = userId ?? existing?.userId;
       if (creditUserId) {
         await this.walletService.topUp(creditUserId, payload.amount);
-        this.pendingByReference.delete(payload.reference);
+        if (existing) {
+          existing.status = 'paid';
+          await this.mcxRepo.save(existing);
+        }
         this.logger.log(`UriPay creditado: user=${creditUserId} amount=${payload.amount}`);
       }
     }

@@ -1,10 +1,9 @@
-import { ConflictException, Injectable, OnModuleInit, Optional } from '@nestjs/common';
+import { ConflictException, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { UserRole, VendorSubtype } from '@uritech/shared';
 import * as bcrypt from 'bcryptjs';
 import { Repository } from 'typeorm';
-import { isDatabaseEnabled } from '../database/database.config';
-import { UserEntity } from '../database/entities/user.entity';
+import { UserEntity, KycTier, KycStatus } from '../database/entities/user.entity';
 
 export interface UserRecord {
   id: string;
@@ -15,6 +14,8 @@ export interface UserRecord {
   role: UserRole;
   vendorSubtype?: VendorSubtype;
   avatar?: string;
+  kycTier?: KycTier;
+  kycStatus?: KycStatus;
   createdAt: string;
 }
 
@@ -24,124 +25,112 @@ export interface UserQuery {
 }
 
 @Injectable()
-export class UsersService implements OnModuleInit {
-  private memoryUsers: UserRecord[] = [];
-  private ready = false;
+export class UsersService {
+  private readonly logger = new Logger(UsersService.name);
 
   constructor(
-    @Optional()
     @InjectRepository(UserEntity)
-    private readonly usersRepo?: Repository<UserEntity>,
+    private readonly usersRepo: Repository<UserEntity>,
   ) {}
 
-  private get useDb() {
-    return isDatabaseEnabled() && !!this.usersRepo;
-  }
-
-  async onModuleInit() {
-    if (this.useDb) {
-      this.ready = true;
-      return;
-    }
-
-    const hash = await bcrypt.hash('demo123', 10);
-    this.memoryUsers = [
-      { id: '1', name: 'Admin UriTech', email: 'admin@uritech.com', phone: '+244923900000001', password: hash, role: 'admin', createdAt: new Date().toISOString() },
-      { id: '2', name: 'João Silva', email: 'joao@uritech.com', phone: '+244923456789', password: hash, role: 'user', createdAt: new Date().toISOString() },
-      { id: '3', name: 'Maria Santos', email: 'maria@uritech.com', phone: '+244912345678', password: hash, role: 'user', createdAt: new Date().toISOString() },
-      { id: '4', name: 'Budi Santoso', email: 'budi@uritech.com', phone: '+244912111222', password: hash, role: 'driver', createdAt: new Date().toISOString() },
-      { id: '5', name: 'Kero Kilamba', email: 'warung@uritech.com', phone: '+244923333444', password: hash, role: 'vendor', vendorSubtype: 'supermarket', createdAt: new Date().toISOString() },
-      { id: '6', name: 'Carlos Entregador', email: 'entregador@uritech.com', phone: '+244923555666', password: hash, role: 'delivery_rider', createdAt: new Date().toISOString() },
-    ];
-    this.ready = true;
-  }
-
-  private ensureReady() {
-    if (!this.ready) throw new Error('UsersService not initialized');
-  }
-
-  private stripPassword(user: UserRecord | UserEntity) {
+  private stripPassword(user: UserEntity) {
     const { password: _, ...safe } = user;
     return {
       ...safe,
-      createdAt: typeof safe.createdAt === 'string' ? safe.createdAt : safe.createdAt.toISOString(),
+      createdAt: user.createdAt.toISOString(),
     };
   }
 
   async findAll(query?: UserQuery) {
-    this.ensureReady();
+    let qb = this.usersRepo.createQueryBuilder('u')
+      .where('u.deleted_at IS NULL');
 
-    if (this.useDb) {
-      let qb = this.usersRepo!.createQueryBuilder('u');
-      if (query?.role) qb = qb.andWhere('u.role = :role', { role: query.role });
-      if (query?.search) {
-        const q = `%${query.search.trim().toLowerCase()}%`;
-        qb = qb.andWhere(
-          '(LOWER(u.name) LIKE :q OR LOWER(u.email) LIKE :q OR LOWER(u.phone) LIKE :q)',
-          { q },
-        );
-      }
-      const rows = await qb.orderBy('u.created_at', 'DESC').getMany();
-      return rows.map((u) => this.stripPassword(u));
-    }
-
-    let result = this.memoryUsers.map(({ password, ...user }) => ({
-      ...user,
-      createdAt: user.createdAt,
-    }));
-
-    if (query?.role) result = result.filter((u) => u.role === query.role);
+    if (query?.role) qb = qb.andWhere('u.role = :role', { role: query.role });
     if (query?.search) {
-      const q = query.search.trim().toLowerCase();
-      result = result.filter(
-        (u) =>
-          u.name.toLowerCase().includes(q) ||
-          u.email.toLowerCase().includes(q) ||
-          u.phone.toLowerCase().includes(q),
+      const q = `%${query.search.trim().toLowerCase()}%`;
+      qb = qb.andWhere(
+        '(LOWER(u.name) LIKE :q OR LOWER(u.email) LIKE :q OR LOWER(u.phone) LIKE :q)',
+        { q },
       );
     }
-    return result;
+    const rows = await qb.orderBy('u.created_at', 'DESC').getMany();
+    return rows.map((u) => this.stripPassword(u));
   }
 
   async findById(id: string) {
-    this.ensureReady();
-
-    if (this.useDb) {
-      const user = await this.usersRepo!.findOne({ where: { id } });
-      return user ? this.stripPassword(user) : null;
-    }
-
-    const user = this.memoryUsers.find((u) => u.id === id);
-    if (!user) return null;
-    return this.stripPassword(user);
+    const user = await this.usersRepo.findOne({
+      where: { id },
+    });
+    return user ? this.stripPassword(user) : null;
   }
 
   async findByEmail(email: string) {
-    this.ensureReady();
+    return this.usersRepo.findOne({
+      where: { email },
+    });
+  }
 
-    if (this.useDb) {
-      return this.usersRepo!.findOne({ where: { email } });
-    }
-
-    return this.memoryUsers.find((u) => u.email === email) || null;
+  /** Retorna user completo com campos de segurança (para auth) */
+  async findByEmailWithSecurity(email: string): Promise<UserEntity | null> {
+    return this.usersRepo.findOne({
+      where: { email },
+    });
   }
 
   async create(data: Omit<UserRecord, 'id' | 'createdAt'>) {
-    this.ensureReady();
     const existing = await this.findByEmail(data.email);
     if (existing) throw new ConflictException('Email já registado');
+    const entity = this.usersRepo.create(data as any);
+    const saved = await this.usersRepo.save(entity) as any;
+    return this.stripPassword(saved);
+  }
 
-    if (this.useDb) {
-      const saved = await this.usersRepo!.save(this.usersRepo!.create(data));
-      return this.stripPassword(saved);
+  // ── Brute Force Protection ──
+
+  private readonly MAX_FAILED_ATTEMPTS = 5;
+  private readonly LOCKOUT_DURATION_MINUTES = 30;
+
+  async recordFailedLogin(userId: string): Promise<void> {
+    const user = await this.usersRepo.findOne({ where: { id: userId } });
+    if (!user) return;
+
+    const attempts = (user.failedLoginAttempts || 0) + 1;
+    const lockedUntil = attempts >= this.MAX_FAILED_ATTEMPTS
+      ? new Date(Date.now() + this.LOCKOUT_DURATION_MINUTES * 60 * 1000)
+      : user.lockedUntil;
+
+    await this.usersRepo.update(userId, {
+      failedLoginAttempts: attempts,
+      lockedUntil,
+    });
+
+    if (attempts >= this.MAX_FAILED_ATTEMPTS) {
+      this.logger.warn(`Conta bloqueada após ${attempts} tentativas falhadas: user=${userId}`);
     }
+  }
 
-    const user: UserRecord = {
-      ...data,
-      id: String(this.memoryUsers.length + 1),
-      createdAt: new Date().toISOString(),
-    };
-    this.memoryUsers.push(user);
-    return this.stripPassword(user);
+  async recordSuccessfulLogin(userId: string, ip?: string): Promise<void> {
+    await this.usersRepo.update(userId, {
+      failedLoginAttempts: 0,
+      lockedUntil: undefined,
+      lastLoginAt: new Date(),
+      lastLoginIp: ip || undefined,
+    });
+  }
+
+  // ── Soft Delete ──
+
+  async softDelete(userId: string): Promise<void> {
+    await this.usersRepo.update(userId, {
+      deletedAt: new Date(),
+      email: `deleted-${Date.now()}-${userId}@deleted.local`,
+    });
+    this.logger.log(`User soft-deleted: ${userId}`);
+  }
+
+  async restore(userId: string): Promise<void> {
+    await this.usersRepo.update(userId, {
+      deletedAt: undefined,
+    });
   }
 }

@@ -36,10 +36,11 @@ class ClaimMediaDto {
   @IsString()
   label!: string;
 
-  @IsOptional()
+  /** URL pública do ficheiro (MinIO/S3). Fazer upload primeiro via /api/v1/upload/claim */
   @IsString()
-  uri?: string;
+  uri!: string;
 
+  /** Base64 legado — não recomendado para produção. Será removido em breve. */
   @IsOptional()
   @IsString()
   base64?: string;

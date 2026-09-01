@@ -1,3 +1,4 @@
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody, ApiQuery, ApiParam } from '@nestjs/swagger';
 import {
   Body,
   Controller,
@@ -24,6 +25,8 @@ const RIDER_NEXT: Partial<Record<OrderStatus, OrderStatus>> = {
   in_transit: 'delivered',
 };
 
+@ApiTags('Orders')
+@ApiBearerAuth('JWT-auth')
 @Controller('orders')
 export class OrdersController {
   constructor(
@@ -32,6 +35,10 @@ export class OrdersController {
   ) {}
 
   @Get()
+  @ApiOperation({ summary: 'Listar pedidos', description: 'Devolve pedidos filtrados por papel do utilizador' })
+  @ApiQuery({ name: 'vendorId', required: false, description: 'Filtrar por loja (admin/vendor)' })
+  @ApiQuery({ name: 'available', required: false, description: 'Pedidos disponíveis para entrega (delivery_rider)' })
+  @ApiResponse({ status: 200, description: 'Lista de pedidos' })
   findAll(
     @Query('vendorId') vendorId?: string,
     @Query('available') available?: string,
@@ -57,11 +64,19 @@ export class OrdersController {
 
   @Public()
   @Get(':id')
+  @ApiOperation({ summary: 'Detalhes do pedido' })
+  @ApiParam({ name: 'id', description: 'ID do pedido' })
+  @ApiResponse({ status: 200, description: 'Detalhes do pedido' })
+  @ApiResponse({ status: 404, description: 'Pedido não encontrado' })
   findOne(@Param('id') id: string) {
     return this.ordersService.findById(id);
   }
 
   @Post('service-checkout')
+  @ApiOperation({ summary: 'Checkout de serviço', description: 'Solicita um serviço on-demand (taxi, entrega, etc.)' })
+  @ApiBody({ type: ServiceCheckoutDto })
+  @ApiResponse({ status: 201, description: 'Pedido criado' })
+  @ApiResponse({ status: 403, description: 'Apenas clientes podem solicitar' })
   async serviceCheckout(@Body() body: ServiceCheckoutDto, @CurrentUser() user: JwtUserPayload) {
     if (user.role !== 'user') {
       throw new ForbiddenException('Apenas clientes podem solicitar serviços');
@@ -72,6 +87,10 @@ export class OrdersController {
   }
 
   @Post('checkout')
+  @ApiOperation({ summary: 'Checkout de loja', description: 'Faz pedido numa loja/restaurante' })
+  @ApiBody({ type: StoreCheckoutDto })
+  @ApiResponse({ status: 201, description: 'Pedido criado' })
+  @ApiResponse({ status: 403, description: 'Apenas clientes podem fazer checkout' })
   async checkout(@Body() body: StoreCheckoutDto, @CurrentUser() user: JwtUserPayload) {
     if (user.role !== 'user') {
       throw new ForbiddenException('Apenas clientes podem fazer checkout de loja');
@@ -82,11 +101,18 @@ export class OrdersController {
   }
 
   @Post()
+  @ApiOperation({ summary: 'Criar pedido' })
+  @ApiResponse({ status: 201, description: 'Pedido criado' })
   create(@Body() body: Parameters<OrdersService['create']>[0], @CurrentUser() user: JwtUserPayload) {
     return this.ordersService.create({ ...body, userId: body.userId ?? user.userId });
   }
 
   @Patch(':id/status')
+  @ApiOperation({ summary: 'Actualizar estado', description: 'Actualiza estado do pedido (vendor, rider, admin)' })
+  @ApiParam({ name: 'id', description: 'ID do pedido' })
+  @ApiResponse({ status: 200, description: 'Estado actualizado' })
+  @ApiResponse({ status: 403, description: 'Não autorizado' })
+  @ApiResponse({ status: 404, description: 'Pedido não encontrado' })
   async updateStatus(
     @Param('id') id: string,
     @Body('status') status: OrderStatus,
