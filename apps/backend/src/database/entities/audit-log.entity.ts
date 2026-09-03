@@ -9,7 +9,7 @@ export class AuditLogEntity {
   userId!: string;
 
   @Column()
-  action!: 'topup' | 'transfer_out' | 'transfer_in' | 'payment' | 'withdraw' | 'multicaixa_webhook';
+  action!: 'topup' | 'transfer_out' | 'transfer_in' | 'payment' | 'withdraw' | 'multicaixa_webhook' | 'reversal';
 
   @Column({ type: 'decimal', precision: 14, scale: 2 })
   amount!: number;

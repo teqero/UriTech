@@ -268,4 +268,66 @@ export class WalletService {
 
     return result;
   }
+
+  /**
+   * Reverte uma transação criando uma entrada compensatória no ledger.
+   * O ledger é append-only: a transação original NUNCA é alterada/apagada.
+   * Idempotente — não reverte a mesma transação duas vezes.
+   */
+  async reverse(userId: string, originalTxId: string, reason: string): Promise<WalletSummary> {
+    if (!reason?.trim()) throw new BadRequestException('Motivo da reversão é obrigatório');
+
+    let originalAmountForAudit = 0;
+
+    const result = await this.walletsRepo.manager.transaction(async (manager) => {
+      const walletRepo = manager.getRepository(WalletEntity);
+      const txRepo = manager.getRepository(WalletTransactionEntity);
+
+      const original = await txRepo.findOne({ where: { id: originalTxId, userId } });
+      if (!original) throw new NotFoundException('Transação original não encontrada');
+      if (original.type === 'reversal') throw new BadRequestException('Não é possível reverter uma reversão');
+
+      // Idempotência: já existe reversão para esta transação?
+      const existingReversal = await txRepo
+        .createQueryBuilder('tx')
+        .where('tx.user_id = :userId', { userId })
+        .andWhere('tx.type = :type', { type: 'reversal' })
+        .andWhere('tx.description LIKE :pattern', { pattern: `Reversão de ${originalTxId}%` })
+        .getOne();
+      if (existingReversal) throw new BadRequestException('Transação já foi revertida');
+
+      const wallet = await walletRepo.findOne({ where: { userId } });
+      if (!wallet) throw new BadRequestException('Carteira não encontrada');
+
+      const reversalAmount = -Number(original.amount); // sinal oposto ao original
+      originalAmountForAudit = reversalAmount;
+      const nextBalance = Number(wallet.balance) + reversalAmount;
+      if (nextBalance < 0) {
+        throw new BadRequestException('Reversão impossível: saldo ficaria negativo');
+      }
+
+      await walletRepo.update({ userId }, { balance: nextBalance });
+      await this.recordTx(
+        manager,
+        userId,
+        wallet.id,
+        'reversal',
+        reversalAmount,
+        nextBalance,
+        `Reversão de ${originalTxId}: ${reason}`,
+        original.counterpartyEmail,
+      );
+      return this.getSummary(userId);
+    });
+
+    void this.auditLogService.log({
+      userId,
+      action: 'reversal',
+      amount: -Number(originalAmountForAudit),
+      balanceAfter: result.balance,
+      description: `Reversão de ${originalTxId}: ${reason}`,
+    });
+
+    return result;
+  }
 }

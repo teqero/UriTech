@@ -5,6 +5,7 @@ import { WalletService } from './wallet.service';
 import { AuditLogService } from '../common/audit-log.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { UsersService } from '../users/users.service';
+import { KycService } from '../kyc/kyc.service';
 import { WalletEntity } from '../database/entities/wallet.entity';
 import { WalletTransactionEntity } from '../database/entities/wallet-transaction.entity';
 
@@ -24,7 +25,9 @@ describe('WalletService', () => {
 
   const mockTxRepo = {
     find: jest.fn(),
+    findOne: jest.fn(),
     save: jest.fn(),
+    createQueryBuilder: jest.fn(),
   };
 
   const usersService = {
@@ -37,6 +40,11 @@ describe('WalletService', () => {
 
   const auditLogService = {
     log: jest.fn().mockResolvedValue(undefined),
+  };
+
+  const kycService = {
+    validateTransaction: jest.fn().mockResolvedValue(undefined),
+    validateMaxBalance: jest.fn().mockResolvedValue(undefined),
   };
 
   function mockTransaction() {
@@ -82,6 +90,7 @@ describe('WalletService', () => {
         { provide: UsersService, useValue: usersService },
         { provide: NotificationsService, useValue: notificationsService },
         { provide: AuditLogService, useValue: auditLogService },
+        { provide: KycService, useValue: kycService },
         { provide: getRepositoryToken(WalletEntity), useValue: mockWalletRepo },
         { provide: getRepositoryToken(WalletTransactionEntity), useValue: mockTxRepo },
       ],
@@ -112,5 +121,53 @@ describe('WalletService', () => {
     const before = await service.getSummary('2');
     const after = await service.topUp('2', 500);
     expect(after.balance).toBe(before.balance + 500);
+  });
+
+  it('reverse cria entrada compensatória e ajusta saldo', async () => {
+    walletStore.set('2', { id: 'w-1', userId: '2', balance: 5000, currency: 'AOA' } as WalletEntity);
+    mockTxRepo.findOne.mockResolvedValue({
+      id: 'tx-original',
+      userId: '2',
+      walletId: 'w-1',
+      type: 'payment',
+      amount: -1500,
+      balanceAfter: 5000,
+      description: 'Pagamento teste',
+      createdAt: new Date(),
+    });
+    // Nenhuma reversão existente
+    mockTxRepo.createQueryBuilder.mockReturnValue({
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      getOne: jest.fn().mockResolvedValue(null),
+    });
+
+    const before = await service.getSummary('2');
+    const after = await service.reverse('2', 'tx-original', 'Fraude confirmada');
+    expect(after.balance).toBe(before.balance + 1500);
+  });
+
+  it('reverse falha se a transação já foi revertida', async () => {
+    walletStore.set('2', { id: 'w-1', userId: '2', balance: 5000, currency: 'AOA' } as WalletEntity);
+    mockTxRepo.findOne.mockResolvedValue({
+      id: 'tx-original',
+      userId: '2',
+      walletId: 'w-1',
+      type: 'payment',
+      amount: -1500,
+      balanceAfter: 5000,
+      description: 'Pagamento teste',
+      createdAt: new Date(),
+    });
+    // Já existe reversão
+    mockTxRepo.createQueryBuilder.mockReturnValue({
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      getOne: jest.fn().mockResolvedValue({ id: 'tx-reversal' }),
+    });
+
+    await expect(service.reverse('2', 'tx-original', 'Tentativa dupla')).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
   });
 });

@@ -1,7 +1,16 @@
-import { Column, CreateDateColumn, DeleteDateColumn, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 import type { WalletTransactionType } from '@uritech/shared';
 
+/**
+ * Ledger de transações da wallet — APPEND-ONLY.
+ * Não tem soft delete nem updates: qualquer correção faz-se com
+ * uma transação de reversão (nova linha), nunca alterando histórico.
+ * A imutabilidade é reforçada por triggers na BD (migration 1725700000000).
+ */
 @Entity('wallet_transactions')
+@Index('idx_wallet_tx_user_created', ['userId', 'createdAt'])
+@Index('idx_wallet_tx_wallet_created', ['walletId', 'createdAt'])
+@Index('idx_wallet_tx_type', ['type'])
 export class WalletTransactionEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
@@ -29,7 +38,4 @@ export class WalletTransactionEntity {
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
-
-  @DeleteDateColumn({ name: 'deleted_at' })
-  deletedAt?: Date;
 }

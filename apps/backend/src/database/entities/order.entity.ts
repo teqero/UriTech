@@ -3,12 +3,17 @@ import {
   CreateDateColumn,
   DeleteDateColumn,
   Entity,
+  Index,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import type { Location, OrderItem, OrderStatus, ServiceType } from '@uritech/shared';
 
 @Entity('orders')
+@Index('idx_orders_user_status', ['userId', 'status'])
+@Index('idx_orders_vendor_status', ['vendorId', 'status'])
+@Index('idx_orders_driver_status', ['driverId', 'status'])
+@Index('idx_orders_created_at', ['createdAt'])
 export class OrderEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;

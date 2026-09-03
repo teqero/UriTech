@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsString, MinLength, IsEnum, IsOptional } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, MinLength, IsEnum } from 'class-validator';
 import type { UserRole } from '@uritech/shared';
+import { IsStrongPassword } from '../../common/validators/is-strong-password.validator';
 
 export class LoginDto {
   @ApiProperty({ example: 'joao@uritech.com', description: 'Email do utilizador' })
@@ -23,9 +24,13 @@ export class RegisterDto {
   @IsEmail()
   email!: string;
 
-  @ApiProperty({ example: 'senha123', description: 'Palavra-passe (mín. 6 caracteres)', minLength: 6 })
+  @ApiProperty({
+    example: 'Segura#2026xpto',
+    description: 'Palavra-passe forte (mín. 12 caracteres, maiúsculas, minúsculas, números e símbolos)',
+    minLength: 12,
+  })
   @IsString()
-  @MinLength(6)
+  @IsStrongPassword()
   password!: string;
 
   @ApiProperty({ example: '+244923456789', description: 'Telefone com código de país' })

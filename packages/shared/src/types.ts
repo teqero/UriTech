@@ -219,7 +219,7 @@ export interface WalletInfo {
   mask?: string;
 }
 
-export type WalletTransactionType = 'topup' | 'transfer_in' | 'transfer_out' | 'withdraw' | 'payment' | 'escrow';
+export type WalletTransactionType = 'topup' | 'transfer_in' | 'transfer_out' | 'withdraw' | 'payment' | 'escrow' | 'reversal';
 
 export interface WalletTransaction {
   id: string;

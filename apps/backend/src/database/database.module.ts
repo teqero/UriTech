@@ -5,6 +5,9 @@ import { getDatabaseConfig } from './database.config';
 import { DbSeedService } from './db-seed.service';
 import { MigrationService } from './migration.service';
 import { AddKycFields1724500000000 } from './migrations/1724500000000-AddKycFields';
+import { AddKycAuditLogs1725000000000 } from './migrations/1725000000000-AddKycAuditLogs';
+import { AddPerformanceIndexes1725600000000 } from './migrations/1725600000000-AddPerformanceIndexes';
+import { WalletLedgerAppendOnly1725700000000 } from './migrations/1725700000000-WalletLedgerAppendOnly';
 import { AuditLogEntity } from './entities/audit-log.entity';
 import { MulticaixaReferenceEntity } from './entities/multicaixa-reference.entity';
 import { ClaimEvidenceEntity } from './entities/claim-evidence.entity';
@@ -64,7 +67,14 @@ export class DatabaseModule implements OnModuleInit {
           connectTimeoutMS: 10000,
           // Migrações — desativamos auto-run (controlamos via MigrationService)
           migrationsRun: false,
-          migrations: config.type === 'postgres' ? [AddKycFields1724500000000] : [],
+          migrations: config.type === 'postgres'
+            ? [
+                AddKycFields1724500000000,
+                AddKycAuditLogs1725000000000,
+                AddPerformanceIndexes1725600000000,
+                WalletLedgerAppendOnly1725700000000,
+              ]
+            : [],
           migrationsTableName: 'typeorm_migrations',
         }),
         TypeOrmModule.forFeature(ENTITIES),

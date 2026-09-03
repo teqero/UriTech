@@ -1,6 +1,8 @@
-import { Column, CreateDateColumn, DeleteDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import { Column, CreateDateColumn, DeleteDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
 @Entity('multicaixa_references')
+@Index('idx_multicaixa_user_status', ['userId', 'status'])
+@Index('idx_multicaixa_status_expires', ['status', 'expiresAt'])
 export class MulticaixaReferenceEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;

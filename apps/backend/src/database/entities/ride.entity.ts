@@ -3,11 +3,15 @@ import {
   CreateDateColumn,
   DeleteDateColumn,
   Entity,
+  Index,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import type { Location, RideStatus, TaxiMode, VehicleClass } from '@uritech/shared';
 
 @Entity('rides')
+@Index('idx_rides_user_status', ['userId', 'status'])
+@Index('idx_rides_driver_status', ['driverId', 'status'])
+@Index('idx_rides_created_at', ['createdAt'])
 export class RideEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;

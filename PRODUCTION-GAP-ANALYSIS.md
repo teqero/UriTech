@@ -24,7 +24,7 @@ O projeto UriTech tem uma base sólida: arquitetura monorepo bem estruturada, ba
 | 4 | **Rate limiting por IP** | ⚠️ PARCIAL | Throttler existe mas é baseado em Redis. Não há rate limit no nginx por IP para DDoS. |
 | 5 | **WAF / Firewall** | ❌ FALTA | Sem proteção contra SQL injection automatizada, XSS, CSRF no nível de aplicação (só helmet). |
 | 6 | **Audit logs persistentes** | ⚠️ PARCIAL | AuditLogService existe mas guarda em Postgres. Sem retenção definida, sem imutabilidade, sem stream para SIEM. |
-| 7 | **Brute force protection** | ❌ FALTA | Auth não tem lockout após N tentativas falhadas, não tem CAPTCHA, não tem 2FA/MFA. |
+| 7 | **Brute force protection** | ⚠️ PARCIAL | Lockout implementado (5 tentativas → 30 min bloqueio). Falta CAPTCHA. |
 | 8 | **Input sanitization** | ⚠️ PARCIAL | Class-validator valida DTOs mas não há sanitização explícita contra XSS nos campos de texto livre. |
 | 9 | **CORS em produção** | ⚠️ PARCIAL | CORS permite `*` em dev. Em prod precisa de whitelist estrita e validação de origins. |
 | 10 | **Security headers** | ⚠️ PARCIAL | Helmet presente mas CSP pode ser mais restritiva. Falta HSTS preload, Referrer-Policy, Permissions-Policy. |
@@ -33,13 +33,13 @@ O projeto UriTech tem uma base sólida: arquitetura monorepo bem estruturada, ba
 
 | # | Item | Estado | Detalhe |
 |---|------|--------|---------|
-| 11 | **2FA/MFA** | ❌ FALTA | Nenhum factor de autenticação adicional (SMS, TOTP, email code). Crítico para wallet/pagamentos. |
-| 12 | **Password policy** | ❌ FALTA | Não há validação de força de password (mínimo 12 chars, complexidade, breached password check via HaveIBeenPwned). |
+| 11 | **2FA/MFA** | ✅ FEITO | `TwoFactorAuthService` com partial tokens (5 min) e backup codes. |
+| 12 | **Password policy** | ✅ FEITO | `IsStrongPassword` validator: mín. 12 chars, maiúscula+minúscula+dígito+símbolo, blocklist de passwords comuns. (2026-09-02) |
 | 13 | **Session management** | ⚠️ PARCIAL | Refresh tokens em Redis são revogáveis, mas não há limitação de sessões simultâneas por utilizador. |
 | 14 | **RBAC granular** | ⚠️ PARCIAL | Roles existem (user/driver/vendor/admin) mas não há permissões finas (ex: vendor só pode ver próprios pedidos). |
 | 15 | **Device fingerprinting** | ❌ FALTA | Sem deteção de login de novo dispositivo/locação suspeita. |
 | 16 | **Account recovery** | ❌ FALTA | Sem fluxo de "esqueci password" com email de reset seguro (token de um uso, expiração curta). |
-| 17 | **Email verification** | ❌ FALTA | Registo não requer verificação de email. Qualquer email funciona. |
+| 17 | **Email verification** | ✅ FEITO | `EmailVerificationService` envia token no registo; `REQUIRE_VERIFIED_EMAIL=true` força verificação no login. |
 | 18 | **Phone verification** | ❌ FALTA | Não há verificação de número de telefone (SMS OTP). Essencial para motoristas e entregadores. |
 
 ### Pagamentos & Wallet
@@ -48,19 +48,19 @@ O projeto UriTech tem uma base sólida: arquitetura monorepo bem estruturada, ba
 |---|------|--------|---------|
 | 19 | **PCI DSS compliance** | ❌ FALTA | Wallet guarda saldos mas não há separação de ambientes, auditoria de transações, ou compliance PCI. |
 | 20 | **Idempotência de pagamentos** | ⚠️ PARCIAL | Multicaixa webhook tem idempotência (não credita duas vezes), mas outras operações de wallet podem não ter. |
-| 21 | **Reconciliação de pagamentos** | ❌ FALTA | Sem job periódico que reconcilia estado do Multicaixa com estado interno. Sem deteção de discrepâncias. |
+| 21 | **Reconciliação de pagamentos** | ✅ FEITO | `ReconciliationService` com cron diário (03:17): expira referências, deteta pendências anómalas e pagamentos sem crédito. Falta comparar com API remota do EMIS quando disponível. (2026-09-02) |
 | 22 | **Escrow/Held funds** | ❌ FALTA | Pagamentos de serviços não usam escrow. Dinheiro vai direto ao fornecedor sem garantia de entrega. |
 | 23 | **Withdrawal flow real** | ❌ FALTA | Withdrawal existe no código mas parece só decrementar saldo interno. Sem integração real com bancos/Multicaixa para levantamento. |
-| 24 | **Transaction reversals** | ❌ FALTA | Sem capacidade de reverter transações em caso de fraude ou erro operacional. |
+| 24 | **Transaction reversals** | ✅ FEITO | `WalletService.reverse()` cria entrada compensatória, idempotente, com proteção contra saldo negativo. (2026-09-02) |
 | 25 | **Fraud detection** | ❌ FALTA | Sem regras anti-fraude (velocity checks, geolocation mismatch, device fingerprint, etc.). |
-| 26 | **KYC/AML** | ❌ FALTA | Sem verificação de identidade para utilizadores de wallet. Sem limites de transação por tier de KYC. |
-| 27 | **Ledger imutável** | ⚠️ PARCIAL | WalletTransactionEntity guarda histórico mas permite updates. Deveria ser append-only. |
+| 26 | **KYC/AML** | ✅ FEITO | Módulo KYC completo: tiers, limites de transação, audit log, cron de expiração. |
+| 27 | **Ledger imutável** | ✅ FEITO | `wallet_transactions` é append-only: triggers na BD bloqueiam UPDATE/DELETE; correções via transações de reversão. (2026-09-02) |
 
 ### Base de Dados
 
 | # | Item | Estado | Detalhe |
 |---|------|--------|---------|
-| 28 | **Indexes otimizados** | ⚠️ PARCIAL | Não vejo indexes definidos nas entities além das PKs. Queries por userId, status, etc. precisam de indexes. |
+| 28 | **Indexes otimizados** | ✅ FEITO | Indexes compostos em wallet_transactions, rides, orders, multicaixa_references (migration `1725600000000`). (2026-09-02) |
 | 29 | **Soft deletes** | ❌ FALTA | Sem `deletedAt` nas entities. Dados são apagados permanentemente. |
 | 30 | **Database replication** | ❌ FALTA | Postgres é single instance. Sem read replica para queries pesadas. |
 | 31 | **Connection pooling** | ⚠️ PARCIAL | TypeORM tem pooling implícito mas não configurado explicitamente (max connections, idle timeout, etc.). |
@@ -71,7 +71,7 @@ O projeto UriTech tem uma base sólida: arquitetura monorepo bem estruturada, ba
 
 | # | Item | Estado | Detalhe |
 |---|------|--------|---------|
-| 34 | **CI/CD pipeline** | ❌ FALTA | Sem GitHub Actions/GitLab CI para build, test, deploy automatizado. |
+| 34 | **CI/CD pipeline** | ✅ FEITO | GitHub Actions: `ci.yml` (build + testes + smoke) e `production.yml` (build Docker + smoke test). |
 | 35 | **Blue/green deployment** | ❌ FALTA | Sem estratégia de deploy zero-downtime. Docker compose stop/start causa indisponibilidade. |
 | 36 | **Auto-scaling** | ❌ FALTA | Sem HPA (Kubernetes) ou auto-scaling groups (AWS/Azure). Backend é single instance. |
 | 37 | **Load balancer** | ❌ FALTA | Nginx é reverse proxy mas não faz load balancing entre múltiplas instâncias do backend. |
