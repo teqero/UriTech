@@ -4,6 +4,7 @@ import { AuthModule } from '../auth/auth.module';
 import { AuditLogService } from '../common/audit-log.service';
 import { isDatabaseEnabled } from '../database/database.config';
 import { AuditLogEntity } from '../database/entities/audit-log.entity';
+import { EscrowHoldEntity } from '../database/entities/escrow-hold.entity';
 import { WalletEntity } from '../database/entities/wallet.entity';
 import { WalletTransactionEntity } from '../database/entities/wallet-transaction.entity';
 import { NotificationsModule } from '../notifications/notifications.module';
@@ -19,7 +20,7 @@ import { WalletService } from './wallet.service';
     NotificationsModule,
     KycModule,
     ...(isDatabaseEnabled()
-      ? [TypeOrmModule.forFeature([WalletEntity, WalletTransactionEntity, AuditLogEntity])]
+      ? [TypeOrmModule.forFeature([WalletEntity, WalletTransactionEntity, EscrowHoldEntity, AuditLogEntity])]
       : []),
   ],
   controllers: [WalletController],

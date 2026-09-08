@@ -49,7 +49,7 @@ O projeto UriTech tem uma base sólida: arquitetura monorepo bem estruturada, ba
 | 19 | **PCI DSS compliance** | ❌ FALTA | Wallet guarda saldos mas não há separação de ambientes, auditoria de transações, ou compliance PCI. |
 | 20 | **Idempotência de pagamentos** | ⚠️ PARCIAL | Multicaixa webhook tem idempotência (não credita duas vezes), mas outras operações de wallet podem não ter. |
 | 21 | **Reconciliação de pagamentos** | ✅ FEITO | `ReconciliationService` com cron diário (03:17): expira referências, deteta pendências anómalas e pagamentos sem crédito. Falta comparar com API remota do EMIS quando disponível. (2026-09-02) |
-| 22 | **Escrow/Held funds** | ❌ FALTA | Pagamentos de serviços não usam escrow. Dinheiro vai direto ao fornecedor sem garantia de entrega. |
+| 22 | **Escrow/Held funds** | ✅ FEITO | `EscrowHoldEntity` + `holdInEscrow`/`releaseEscrow`/`refundEscrow` no WalletService; checkout retém o valor, entrega liberta ao vendor, cancelamento reembolsa o cliente. (2026-09-08) |
 | 23 | **Withdrawal flow real** | ❌ FALTA | Withdrawal existe no código mas parece só decrementar saldo interno. Sem integração real com bancos/Multicaixa para levantamento. |
 | 24 | **Transaction reversals** | ✅ FEITO | `WalletService.reverse()` cria entrada compensatória, idempotente, com proteção contra saldo negativo. (2026-09-02) |
 | 25 | **Fraud detection** | ❌ FALTA | Sem regras anti-fraude (velocity checks, geolocation mismatch, device fingerprint, etc.). |

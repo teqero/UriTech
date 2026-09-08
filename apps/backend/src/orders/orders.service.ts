@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Order, OrderStatus } from '@uritech/shared';
 import {
@@ -16,6 +16,8 @@ import type { StoreCheckoutDto } from './dto/store-checkout.dto';
 
 @Injectable()
 export class OrdersService {
+  private readonly logger = new Logger(OrdersService.name);
+
   constructor(
     private readonly usersService: UsersService,
     private readonly walletService: WalletService,
@@ -87,14 +89,10 @@ export class OrdersService {
     const serviceType = resolveOrderServiceType(dto.serviceKey);
     const payWithWallet = dto.payWithWallet !== false;
 
-    if (payWithWallet) {
-      await this.walletService.pay(userId, dto.total, `Pedido ${dto.serviceName}`);
-    }
-
     const deliveryAddress =
       dto.destinationLabel?.trim() || DEFAULT_ORIGIN.address || 'Destino — cliente UriGo';
 
-    return this.create({
+    const order = await this.create({
       userId,
       serviceType,
       status: 'pending',
@@ -117,6 +115,23 @@ export class OrdersService {
         address: deliveryAddress,
       },
     });
+
+    // Escrow: o valor fica retido até à entrega (release) ou cancelamento (refund)
+    if (payWithWallet) {
+      try {
+        await this.walletService.holdInEscrow(
+          userId,
+          order.id,
+          dto.total,
+          `Pedido ${dto.serviceName}`,
+        );
+      } catch (err) {
+        await this.updateStatus(order.id, 'cancelled');
+        throw err;
+      }
+    }
+
+    return order;
   }
 
   async checkoutStore(userId: string, dto: StoreCheckoutDto): Promise<Order> {
@@ -127,15 +142,12 @@ export class OrdersService {
     if (!vendor) throw new NotFoundException('Vendedor da loja não encontrado');
 
     const payWithWallet = dto.payWithWallet !== false;
-    if (payWithWallet) {
-      await this.walletService.pay(userId, dto.total, `Pedido loja — ${dto.storeName}`);
-    }
 
     const pickup =
       STORE_PICKUP_LOCATIONS[dto.storeId] ??
       ({ latitude: -8.918, longitude: 13.303, address: dto.storeName } as const);
 
-    return this.create({
+    const order = await this.create({
       userId,
       vendorId: vendor.id,
       serviceType: 'lojas',
@@ -155,6 +167,24 @@ export class OrdersService {
         address: DEFAULT_ORIGIN.address ?? 'Entrega — cliente UriGo',
       },
     });
+
+    // Escrow: o valor fica retido até à entrega (release) ou cancelamento (refund)
+    if (payWithWallet) {
+      try {
+        await this.walletService.holdInEscrow(
+          userId,
+          order.id,
+          dto.total,
+          `Pedido loja — ${dto.storeName}`,
+          vendor.id,
+        );
+      } catch (err) {
+        await this.updateStatus(order.id, 'cancelled');
+        throw err;
+      }
+    }
+
+    return order;
   }
 
   async create(data: Omit<Order, 'id' | 'createdAt' | 'updatedAt'>) {
@@ -165,9 +195,29 @@ export class OrdersService {
   async updateStatus(id: string, status: OrderStatus, driverId?: string) {
     const row = await this.ordersRepo.findOne({ where: { id } });
     if (!row) return null;
+    const previousStatus = row.status;
     row.status = status;
     if (driverId) row.driverId = driverId;
     const saved = await this.ordersRepo.save(row);
+
+    // Resolver escrow associado ao pedido (se existir)
+    try {
+      if (status === 'delivered' && previousStatus !== 'delivered') {
+        await this.walletService.releaseEscrow(id);
+      } else if (status === 'cancelled' && previousStatus !== 'cancelled') {
+        await this.walletService.refundEscrow(id, 'Pedido cancelado');
+      }
+    } catch (err) {
+      // Se não existe escrow para o pedido (pagamento não-wallet), ignorar
+      if (err instanceof NotFoundException) {
+        this.logger.debug(`Pedido ${id} sem escrow associado (${status})`);
+      } else {
+        this.logger.error(
+          `Falha ao resolver escrow do pedido ${id} (${status}): ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+
     return this.toOrder(saved);
   }
 }

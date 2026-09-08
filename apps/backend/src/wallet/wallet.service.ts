@@ -7,6 +7,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import type { WalletSummary, WalletTransaction, WalletTransactionType } from '@uritech/shared';
 import { Repository } from 'typeorm';
 import { AuditLogService } from '../common/audit-log.service';
+import { EscrowHoldEntity } from '../database/entities/escrow-hold.entity';
 import { WalletEntity } from '../database/entities/wallet.entity';
 import { WalletTransactionEntity } from '../database/entities/wallet-transaction.entity';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -24,6 +25,8 @@ export class WalletService {
     private readonly walletsRepo: Repository<WalletEntity>,
     @InjectRepository(WalletTransactionEntity)
     private readonly txRepo: Repository<WalletTransactionEntity>,
+    @InjectRepository(EscrowHoldEntity)
+    private readonly escrowRepo: Repository<EscrowHoldEntity>,
   ) {}
 
   private maskForUser(userId: string): string {
@@ -274,6 +277,155 @@ export class WalletService {
    * O ledger é append-only: a transação original NUNCA é alterada/apagada.
    * Idempotente — não reverte a mesma transação duas vezes.
    */
+  /**
+   * Retém o valor de um pedido em escrow no checkout.
+   * O dinheiro sai da wallet do cliente mas NÃO vai ao vendor —
+   * fica retido até releaseEscrow (entrega) ou refundEscrow (cancelamento).
+   */
+  async holdInEscrow(
+    userId: string,
+    orderId: string,
+    amount: number,
+    description: string,
+    vendorId?: string,
+  ): Promise<EscrowHoldEntity> {
+    if (amount <= 0) throw new BadRequestException('Valor inválido');
+
+    await this.kycService.validateTransaction(userId, 'payment', amount);
+
+    return this.walletsRepo.manager.transaction(async (manager) => {
+      const walletRepo = manager.getRepository(WalletEntity);
+      const escrowRepo = manager.getRepository(EscrowHoldEntity);
+
+      // Idempotência: já existe hold para este pedido?
+      const existing = await escrowRepo.findOne({ where: { orderId } });
+      if (existing) return existing;
+
+      const wallet = await walletRepo.findOne({ where: { userId } });
+      if (!wallet) throw new BadRequestException('Carteira não encontrada');
+      if (Number(wallet.balance) < amount) throw new BadRequestException('Saldo UriPay insuficiente');
+
+      const nextBalance = Number(wallet.balance) - amount;
+      await walletRepo.update({ userId }, { balance: nextBalance });
+      await this.recordTx(manager, userId, wallet.id, 'escrow', -amount, nextBalance, description);
+
+      const hold = await escrowRepo.save(
+        escrowRepo.create({
+          orderId,
+          userId,
+          vendorId,
+          amount,
+          currency: 'AOA',
+          status: 'held',
+          description,
+        }),
+      );
+
+      void this.auditLogService.log({
+        userId,
+        action: 'payment',
+        amount: -amount,
+        balanceAfter: nextBalance,
+        description: `Escrow retido: ${description} (pedido ${orderId})`,
+      });
+
+      return hold;
+    });
+  }
+
+  /**
+   * Liberta o escrow para o vendor após entrega confirmada.
+   * Credita a wallet do vendor (se existir) e marca o hold como released.
+   */
+  async releaseEscrow(orderId: string): Promise<EscrowHoldEntity> {
+    const hold = await this.escrowRepo.findOne({ where: { orderId } });
+    if (!hold) throw new NotFoundException(`Escrow não encontrado para pedido ${orderId}`);
+    if (hold.status !== 'held') return hold; // idempotente
+
+    await this.walletsRepo.manager.transaction(async (manager) => {
+      const walletRepo = manager.getRepository(WalletEntity);
+      const escrowRepo = manager.getRepository(EscrowHoldEntity);
+
+      if (hold.vendorId) {
+        let vendorWallet = await walletRepo.findOne({ where: { userId: hold.vendorId } });
+        if (!vendorWallet) {
+          vendorWallet = await walletRepo.save(
+            walletRepo.create({ userId: hold.vendorId, balance: 0, currency: 'AOA' }),
+          );
+        }
+        const vendorBalance = Number(vendorWallet.balance) + Number(hold.amount);
+        await walletRepo.update({ userId: hold.vendorId }, { balance: vendorBalance });
+        await this.recordTx(
+          manager,
+          hold.vendorId,
+          vendorWallet.id,
+          'transfer_in',
+          Number(hold.amount),
+          vendorBalance,
+          `Pagamento recebido — pedido ${orderId}`,
+          undefined,
+        );
+      }
+
+      hold.status = 'released';
+      hold.resolvedAt = new Date();
+      hold.resolutionReason = 'Entrega confirmada';
+      await escrowRepo.save(hold);
+    });
+
+    void this.auditLogService.log({
+      userId: hold.vendorId ?? hold.userId,
+      action: 'transfer_in',
+      amount: Number(hold.amount),
+      description: `Escrow libertado — pedido ${orderId}`,
+    });
+
+    return hold;
+  }
+
+  /**
+   * Devolve o escrow ao cliente quando o pedido é cancelado.
+   */
+  async refundEscrow(orderId: string, reason: string): Promise<EscrowHoldEntity> {
+    const hold = await this.escrowRepo.findOne({ where: { orderId } });
+    if (!hold) throw new NotFoundException(`Escrow não encontrado para pedido ${orderId}`);
+    if (hold.status !== 'held') return hold; // idempotente
+
+    await this.walletsRepo.manager.transaction(async (manager) => {
+      const walletRepo = manager.getRepository(WalletEntity);
+      const escrowRepo = manager.getRepository(EscrowHoldEntity);
+
+      const wallet = await walletRepo.findOne({ where: { userId: hold.userId } });
+      if (!wallet) throw new BadRequestException('Carteira do cliente não encontrada');
+
+      const nextBalance = Number(wallet.balance) + Number(hold.amount);
+      await walletRepo.update({ userId: hold.userId }, { balance: nextBalance });
+      await this.recordTx(
+        manager,
+        hold.userId,
+        wallet.id,
+        'reversal',
+        Number(hold.amount),
+        nextBalance,
+        `Reembolso escrow — pedido ${orderId}: ${reason}`,
+      );
+
+      hold.status = 'refunded';
+      hold.resolvedAt = new Date();
+      hold.resolutionReason = reason;
+      await escrowRepo.save(hold);
+    });
+
+    void this.auditLogService.log({
+      userId: hold.userId,
+      action: 'reversal',
+      amount: Number(hold.amount),
+      description: `Escrow reembolsado — pedido ${orderId}: ${reason}`,
+    });
+
+    return hold;
+  }
+
   async reverse(userId: string, originalTxId: string, reason: string): Promise<WalletSummary> {
     if (!reason?.trim()) throw new BadRequestException('Motivo da reversão é obrigatório');
 

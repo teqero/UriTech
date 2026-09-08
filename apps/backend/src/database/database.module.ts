@@ -8,10 +8,12 @@ import { AddKycFields1724500000000 } from './migrations/1724500000000-AddKycFiel
 import { AddKycAuditLogs1725000000000 } from './migrations/1725000000000-AddKycAuditLogs';
 import { AddPerformanceIndexes1725600000000 } from './migrations/1725600000000-AddPerformanceIndexes';
 import { WalletLedgerAppendOnly1725700000000 } from './migrations/1725700000000-WalletLedgerAppendOnly';
+import { AddEscrowHolds1725800000000 } from './migrations/1725800000000-AddEscrowHolds';
 import { AuditLogEntity } from './entities/audit-log.entity';
 import { MulticaixaReferenceEntity } from './entities/multicaixa-reference.entity';
 import { ClaimEvidenceEntity } from './entities/claim-evidence.entity';
 import { DriverEntity } from './entities/driver.entity';
+import { EscrowHoldEntity } from './entities/escrow-hold.entity';
 import { InsurerEntity } from './entities/insurer.entity';
 import { OrderEntity } from './entities/order.entity';
 import { RideEntity } from './entities/ride.entity';
@@ -34,6 +36,7 @@ const ENTITIES = [
   VendorEntity,
   MulticaixaReferenceEntity,
   AuditLogEntity,
+  EscrowHoldEntity,
 ];
 
 @Global()
@@ -73,6 +76,7 @@ export class DatabaseModule implements OnModuleInit {
                 AddKycAuditLogs1725000000000,
                 AddPerformanceIndexes1725600000000,
                 WalletLedgerAppendOnly1725700000000,
+                AddEscrowHolds1725800000000,
               ]
             : [],
           migrationsTableName: 'typeorm_migrations',
