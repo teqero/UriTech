@@ -26,7 +26,7 @@ O projeto UriTech tem uma base sólida: arquitetura monorepo bem estruturada, ba
 | 6 | **Audit logs persistentes** | ⚠️ PARCIAL | AuditLogService existe mas guarda em Postgres. Sem retenção definida, sem imutabilidade, sem stream para SIEM. |
 | 7 | **Brute force protection** | ⚠️ PARCIAL | Lockout implementado (5 tentativas → 30 min bloqueio). Falta CAPTCHA. |
 | 8 | **Input sanitization** | ⚠️ PARCIAL | Class-validator valida DTOs mas não há sanitização explícita contra XSS nos campos de texto livre. |
-| 9 | **CORS em produção** | ⚠️ PARCIAL | CORS permite `*` em dev. Em prod precisa de whitelist estrita e validação de origins. |
+| 9 | **CORS em produção** | ✅ FEITO | Whitelist estrita via `ALLOWED_ORIGINS` em prod (fail-closed); permissivo apenas em dev. |
 | 10 | **Security headers** | ⚠️ PARCIAL | Helmet presente mas CSP pode ser mais restritiva. Falta HSTS preload, Referrer-Policy, Permissions-Policy. |
 
 ### Autenticação & Autorização
@@ -38,7 +38,7 @@ O projeto UriTech tem uma base sólida: arquitetura monorepo bem estruturada, ba
 | 13 | **Session management** | ⚠️ PARCIAL | Refresh tokens em Redis são revogáveis, mas não há limitação de sessões simultâneas por utilizador. |
 | 14 | **RBAC granular** | ⚠️ PARCIAL | Roles existem (user/driver/vendor/admin) mas não há permissões finas (ex: vendor só pode ver próprios pedidos). |
 | 15 | **Device fingerprinting** | ❌ FALTA | Sem deteção de login de novo dispositivo/locação suspeita. |
-| 16 | **Account recovery** | ❌ FALTA | Sem fluxo de "esqueci password" com email de reset seguro (token de um uso, expiração curta). |
+| 16 | **Account recovery** | ✅ FEITO | `PasswordResetService`: token single-use (hash SHA-256 em Redis, TTL 15 min), password policy aplicada, revoga todas as sessões após reset. Endpoints `/auth/forgot-password` e `/auth/reset-password`. (2026-09-08) |
 | 17 | **Email verification** | ✅ FEITO | `EmailVerificationService` envia token no registo; `REQUIRE_VERIFIED_EMAIL=true` força verificação no login. |
 | 18 | **Phone verification** | ❌ FALTA | Não há verificação de número de telefone (SMS OTP). Essencial para motoristas e entregadores. |
 
@@ -52,7 +52,7 @@ O projeto UriTech tem uma base sólida: arquitetura monorepo bem estruturada, ba
 | 22 | **Escrow/Held funds** | ✅ FEITO | `EscrowHoldEntity` + `holdInEscrow`/`releaseEscrow`/`refundEscrow` no WalletService; checkout retém o valor, entrega liberta ao vendor, cancelamento reembolsa o cliente. (2026-09-08) |
 | 23 | **Withdrawal flow real** | ❌ FALTA | Withdrawal existe no código mas parece só decrementar saldo interno. Sem integração real com bancos/Multicaixa para levantamento. |
 | 24 | **Transaction reversals** | ✅ FEITO | `WalletService.reverse()` cria entrada compensatória, idempotente, com proteção contra saldo negativo. (2026-09-02) |
-| 25 | **Fraud detection** | ❌ FALTA | Sem regras anti-fraude (velocity checks, geolocation mismatch, device fingerprint, etc.). |
+| 25 | **Fraud detection** | ✅ FEITO | `FraudService` com regras de velocity (ops/hora, levantamentos/dia, volume diário, destinatários distintos) integrado em todas as operações da wallet. Bloqueio automático com score ≥100. (2026-09-08) |
 | 26 | **KYC/AML** | ✅ FEITO | Módulo KYC completo: tiers, limites de transação, audit log, cron de expiração. |
 | 27 | **Ledger imutável** | ✅ FEITO | `wallet_transactions` é append-only: triggers na BD bloqueiam UPDATE/DELETE; correções via transações de reversão. (2026-09-02) |
 

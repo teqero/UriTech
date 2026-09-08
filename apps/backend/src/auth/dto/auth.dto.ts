@@ -54,6 +54,28 @@ export class RefreshDto {
   refreshToken!: string;
 }
 
+export class ForgotPasswordDto {
+  @ApiProperty({ example: 'joao@uritech.com', description: 'Email da conta a recuperar' })
+  @IsEmail()
+  email!: string;
+}
+
+export class ResetPasswordDto {
+  @ApiProperty({ description: 'Token de reset recebido por email (válido 15 min, single-use)' })
+  @IsString()
+  @IsNotEmpty()
+  token!: string;
+
+  @ApiProperty({
+    example: 'NovaSegura#2026x',
+    description: 'Nova palavra-passe forte (mín. 12 caracteres, maiúsculas, minúsculas, números e símbolos)',
+    minLength: 12,
+  })
+  @IsString()
+  @IsStrongPassword()
+  newPassword!: string;
+}
+
 export class AuthResponseDto {
   @ApiProperty({ example: 'eyJhbGciOiJIUzI1NiIs...' })
   accessToken!: string;

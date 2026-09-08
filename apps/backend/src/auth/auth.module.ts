@@ -8,6 +8,7 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { EmailVerificationService } from './email-verification.service';
 import { TwoFactorAuthService } from './two-factor-auth.service';
+import { PasswordResetService } from './password-reset.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { JwtStrategy } from './jwt.strategy';
 import { RolesGuard } from './roles.guard';
@@ -34,6 +35,7 @@ import { UserEntity } from '../database/entities/user.entity';
     AuthService,
     EmailVerificationService,
     TwoFactorAuthService,
+    PasswordResetService,
     EmailService,
     JwtStrategy,
     JwtAuthGuard,

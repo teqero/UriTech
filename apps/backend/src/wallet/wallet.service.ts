@@ -13,6 +13,7 @@ import { WalletTransactionEntity } from '../database/entities/wallet-transaction
 import { NotificationsService } from '../notifications/notifications.service';
 import { UsersService } from '../users/users.service';
 import { KycService } from '../kyc/kyc.service';
+import { FraudService } from '../fraud/fraud.service';
 
 @Injectable()
 export class WalletService {
@@ -21,6 +22,7 @@ export class WalletService {
     private readonly notificationsService: NotificationsService,
     private readonly auditLogService: AuditLogService,
     private readonly kycService: KycService,
+    private readonly fraudService: FraudService,
     @InjectRepository(WalletEntity)
     private readonly walletsRepo: Repository<WalletEntity>,
     @InjectRepository(WalletTransactionEntity)
@@ -32,6 +34,24 @@ export class WalletService {
   private maskForUser(userId: string): string {
     const tail = userId.replace(/-/g, '').slice(-4);
     return `**** ${tail || '4291'}`;
+  }
+
+  /**
+   * Bloqueia a operação se a análise de fraude detetar padrões suspeitos
+   * (velocity, volume diário, múltiplos destinatários, etc.).
+   */
+  private async assertFraudCheck(
+    userId: string,
+    type: string,
+    amount: number,
+    counterpartyEmail?: string,
+  ): Promise<void> {
+    const check = await this.fraudService.checkWalletOperation(userId, type, amount, counterpartyEmail);
+    if (!check.allowed) {
+      throw new BadRequestException(
+        'Operação temporariamente bloqueada por segurança. Contacte o suporte se considerar um erro.',
+      );
+    }
   }
 
   private toTransaction(row: WalletTransactionEntity): WalletTransaction {
@@ -104,6 +124,7 @@ export class WalletService {
 
     // Validar KYC
     await this.kycService.validateTransaction(userId, 'topup', amount);
+    await this.assertFraudCheck(userId, 'topup', amount);
 
     const result = await this.walletsRepo.manager.transaction(async (manager) => {
       const walletRepo = manager.getRepository(WalletEntity);
@@ -137,6 +158,7 @@ export class WalletService {
 
     // Validar KYC
     await this.kycService.validateTransaction(fromUserId, 'transfer', amount);
+    await this.assertFraudCheck(fromUserId, 'transfer', amount, toEmail);
 
     const recipient = await this.usersService.findByEmail(toEmail);
     if (!recipient) throw new NotFoundException('Destinatário não encontrado');
@@ -219,6 +241,7 @@ export class WalletService {
 
     // Validar KYC
     await this.kycService.validateTransaction(userId, 'payment', amount);
+    await this.assertFraudCheck(userId, 'payment', amount);
 
     const result = await this.walletsRepo.manager.transaction(async (manager) => {
       const walletRepo = manager.getRepository(WalletEntity);
@@ -248,6 +271,7 @@ export class WalletService {
 
     // Validar KYC
     await this.kycService.validateTransaction(userId, 'withdraw', amount);
+    await this.assertFraudCheck(userId, 'withdraw', amount);
 
     const result = await this.walletsRepo.manager.transaction(async (manager) => {
       const walletRepo = manager.getRepository(WalletEntity);
@@ -292,6 +316,7 @@ export class WalletService {
     if (amount <= 0) throw new BadRequestException('Valor inválido');
 
     await this.kycService.validateTransaction(userId, 'payment', amount);
+    await this.assertFraudCheck(userId, 'escrow', amount);
 
     return this.walletsRepo.manager.transaction(async (manager) => {
       const walletRepo = manager.getRepository(WalletEntity);

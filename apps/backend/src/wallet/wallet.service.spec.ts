@@ -6,6 +6,7 @@ import { AuditLogService } from '../common/audit-log.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { UsersService } from '../users/users.service';
 import { KycService } from '../kyc/kyc.service';
+import { FraudService } from '../fraud/fraud.service';
 import { WalletEntity } from '../database/entities/wallet.entity';
 import { EscrowHoldEntity } from '../database/entities/escrow-hold.entity';
 import { WalletTransactionEntity } from '../database/entities/wallet-transaction.entity';
@@ -54,6 +55,12 @@ describe('WalletService', () => {
     create: jest.fn((data) => data),
   };
 
+  const fraudService = {
+    checkWalletOperation: jest
+      .fn()
+      .mockResolvedValue({ allowed: true, score: 0, reasons: [] }),
+  };
+
   function mockTransaction() {
     return jest.fn(async (cb: (mgr: unknown) => Promise<unknown>) => {
       const manager = {
@@ -99,6 +106,7 @@ describe('WalletService', () => {
         { provide: NotificationsService, useValue: notificationsService },
         { provide: AuditLogService, useValue: auditLogService },
         { provide: KycService, useValue: kycService },
+        { provide: FraudService, useValue: fraudService },
         { provide: getRepositoryToken(WalletEntity), useValue: mockWalletRepo },
         { provide: getRepositoryToken(WalletTransactionEntity), useValue: mockTxRepo },
         { provide: getRepositoryToken(EscrowHoldEntity), useValue: mockEscrowRepo },
@@ -244,6 +252,20 @@ describe('WalletService', () => {
     const result = await service.refundEscrow('order-1', 'Pedido cancelado');
 
     expect(result.status).toBe('refunded');
+    const wallet = walletStore.get('2');
+    expect(Number(wallet?.balance)).toBe(10000);
+  });
+
+  it('pay bloqueado quando fraud check reprova', async () => {
+    walletStore.set('2', { id: 'w-1', userId: '2', balance: 10000, currency: 'AOA' } as WalletEntity);
+    fraudService.checkWalletOperation.mockResolvedValueOnce({
+      allowed: false,
+      score: 100,
+      reasons: ['velocity'],
+    });
+
+    await expect(service.pay('2', 1000, 'Teste')).rejects.toBeInstanceOf(BadRequestException);
+    // Saldo não pode ter sido debitado
     const wallet = walletStore.get('2');
     expect(Number(wallet?.balance)).toBe(10000);
   });

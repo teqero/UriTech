@@ -10,6 +10,7 @@ import { WalletTransactionEntity } from '../database/entities/wallet-transaction
 import { NotificationsModule } from '../notifications/notifications.module';
 import { UsersModule } from '../users/users.module';
 import { KycModule } from '../kyc/kyc.module';
+import { FraudModule } from '../fraud/fraud.module';
 import { WalletController } from './wallet.controller';
 import { WalletService } from './wallet.service';
 
@@ -19,6 +20,7 @@ import { WalletService } from './wallet.service';
     UsersModule,
     NotificationsModule,
     KycModule,
+    FraudModule,
     ...(isDatabaseEnabled()
       ? [TypeOrmModule.forFeature([WalletEntity, WalletTransactionEntity, EscrowHoldEntity, AuditLogEntity])]
       : []),

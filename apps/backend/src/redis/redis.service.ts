@@ -21,6 +21,13 @@ class InMemoryRedis {
     this.store.set(key, { value, expiresAt: Date.now() + ttlSeconds * 1000 });
   }
 
+  async get(key: string): Promise<string | null> {
+    this.cleanup();
+    const entry = this.store.get(key);
+    if (!entry || entry.expiresAt <= Date.now()) return null;
+    return entry.value;
+  }
+
   async exists(key: string): Promise<number> {
     this.cleanup();
     const entry = this.store.get(key);
@@ -156,6 +163,20 @@ export class RedisService implements OnApplicationShutdown {
   async deleteRefreshToken(userId: string, tokenId: string): Promise<void> {
     const key = `refresh:${userId}:${tokenId}`;
     await this.redis.del(key);
+  }
+
+  // ── Password Reset Tokens (single-use, TTL curto) ──
+
+  async storePasswordResetToken(tokenHash: string, userId: string, ttlSeconds: number): Promise<void> {
+    await this.redis.setex(`pwdreset:${tokenHash}`, ttlSeconds, userId);
+  }
+
+  async getPasswordResetUserId(tokenHash: string): Promise<string | null> {
+    return this.redis.get(`pwdreset:${tokenHash}`);
+  }
+
+  async deletePasswordResetToken(tokenHash: string): Promise<void> {
+    await this.redis.del(`pwdreset:${tokenHash}`);
   }
 
   async revokeAllUserRefreshTokens(userId: string): Promise<void> {

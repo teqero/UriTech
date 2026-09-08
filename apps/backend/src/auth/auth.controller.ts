@@ -12,8 +12,9 @@ import {
 import { AuthService } from './auth.service';
 import { EmailVerificationService } from './email-verification.service';
 import { TwoFactorAuthService } from './two-factor-auth.service';
-import { LoginDto, RegisterDto, AuthResponseDto } from './dto/auth.dto';
+import { LoginDto, RegisterDto, AuthResponseDto, ForgotPasswordDto, ResetPasswordDto } from './dto/auth.dto';
 import { RefreshTokenDto } from './dto/refresh.dto';
+import { PasswordResetService } from './password-reset.service';
 import { Public } from './public.decorator';
 import { CurrentUser } from './current-user.decorator';
 
@@ -24,6 +25,7 @@ export class AuthController {
     private authService: AuthService,
     private emailVerificationService: EmailVerificationService,
     private twoFactorAuthService: TwoFactorAuthService,
+    private passwordResetService: PasswordResetService,
   ) {}
 
   @Public()
@@ -111,6 +113,37 @@ export class AuthController {
     return {
       success: true,
       message: 'Se a conta existir e o email não estiver verificado, um novo email foi enviado.',
+    };
+  }
+
+  // ── Password Reset ──
+
+  @Public()
+  @Post('forgot-password')
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @ApiOperation({ summary: 'Pedir reset de password', description: 'Envia email com link de reset (válido 15 min). Não revela se o email existe.' })
+  @ApiBody({ type: ForgotPasswordDto })
+  @ApiResponse({ status: 201, description: 'Se a conta existir, o email foi enviado' })
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    await this.passwordResetService.requestReset(dto.email);
+    return {
+      success: true,
+      message: 'Se a conta existir, receberá um email com instruções para redefinir a palavra-passe.',
+    };
+  }
+
+  @Public()
+  @Post('reset-password')
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @ApiOperation({ summary: 'Confirmar reset de password', description: 'Redefine a password com token single-use. Revoga todas as sessões activas.' })
+  @ApiBody({ type: ResetPasswordDto })
+  @ApiResponse({ status: 201, description: 'Password redefinida com sucesso' })
+  @ApiResponse({ status: 400, description: 'Token inválido ou expirado' })
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    await this.passwordResetService.confirmReset(dto.token, dto.newPassword);
+    return {
+      success: true,
+      message: 'Palavra-passe redefinida com sucesso. Todas as sessões anteriores foram terminadas.',
     };
   }
 
