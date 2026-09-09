@@ -9,6 +9,8 @@ import { AuthService } from './auth.service';
 import { EmailVerificationService } from './email-verification.service';
 import { TwoFactorAuthService } from './two-factor-auth.service';
 import { PasswordResetService } from './password-reset.service';
+import { PhoneVerificationService } from './phone-verification.service';
+import { SmsService } from '../common/sms.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { JwtStrategy } from './jwt.strategy';
 import { RolesGuard } from './roles.guard';
@@ -36,6 +38,8 @@ import { UserEntity } from '../database/entities/user.entity';
     EmailVerificationService,
     TwoFactorAuthService,
     PasswordResetService,
+    PhoneVerificationService,
+    SmsService,
     EmailService,
     JwtStrategy,
     JwtAuthGuard,

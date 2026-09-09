@@ -40,6 +40,10 @@ export class UserEntity {
   @Column({ name: 'email_verified', default: false })
   emailVerified!: boolean;
 
+  // ── Phone Verification (SMS OTP) ──
+  @Column({ name: 'phone_verified', default: false })
+  phoneVerified?: boolean;
+
   @Column({ name: 'email_verification_token', nullable: true, length: 64 })
   emailVerificationToken?: string;
 

@@ -9,6 +9,7 @@ import { AddKycAuditLogs1725000000000 } from './migrations/1725000000000-AddKycA
 import { AddPerformanceIndexes1725600000000 } from './migrations/1725600000000-AddPerformanceIndexes';
 import { WalletLedgerAppendOnly1725700000000 } from './migrations/1725700000000-WalletLedgerAppendOnly';
 import { AddEscrowHolds1725800000000 } from './migrations/1725800000000-AddEscrowHolds';
+import { AddPhoneVerified1725900000000 } from './migrations/1725900000000-AddPhoneVerified';
 import { AuditLogEntity } from './entities/audit-log.entity';
 import { MulticaixaReferenceEntity } from './entities/multicaixa-reference.entity';
 import { ClaimEvidenceEntity } from './entities/claim-evidence.entity';
@@ -77,6 +78,7 @@ export class DatabaseModule implements OnModuleInit {
                 AddPerformanceIndexes1725600000000,
                 WalletLedgerAppendOnly1725700000000,
                 AddEscrowHolds1725800000000,
+                AddPhoneVerified1725900000000,
               ]
             : [],
           migrationsTableName: 'typeorm_migrations',

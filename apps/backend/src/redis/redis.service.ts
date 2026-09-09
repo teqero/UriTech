@@ -179,6 +179,30 @@ export class RedisService implements OnApplicationShutdown {
     await this.redis.del(`pwdreset:${tokenHash}`);
   }
 
+  // ── Phone OTP (verificação de telefone) ──
+
+  async storePhoneOtp(userId: string, codeHash: string, ttlSeconds: number): Promise<void> {
+    await this.redis.setex(`phoneotp:${userId}`, ttlSeconds, codeHash);
+  }
+
+  async getPhoneOtp(userId: string): Promise<string | null> {
+    return this.redis.get(`phoneotp:${userId}`);
+  }
+
+  async deletePhoneOtp(userId: string): Promise<void> {
+    await this.redis.del(`phoneotp:${userId}`);
+  }
+
+  // ── Helpers genéricos ──
+
+  async exists(key: string): Promise<boolean> {
+    return (await this.redis.exists(key)) === 1;
+  }
+
+  async setex(key: string, ttlSeconds: number, value: string): Promise<void> {
+    await this.redis.setex(key, ttlSeconds, value);
+  }
+
   async revokeAllUserRefreshTokens(userId: string): Promise<void> {
     if (this.isMock) {
       // Mock não suporta scan pattern — limpar manualmente

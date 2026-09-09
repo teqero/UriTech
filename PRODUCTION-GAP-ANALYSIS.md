@@ -40,7 +40,7 @@ O projeto UriTech tem uma base sólida: arquitetura monorepo bem estruturada, ba
 | 15 | **Device fingerprinting** | ❌ FALTA | Sem deteção de login de novo dispositivo/locação suspeita. |
 | 16 | **Account recovery** | ✅ FEITO | `PasswordResetService`: token single-use (hash SHA-256 em Redis, TTL 15 min), password policy aplicada, revoga todas as sessões após reset. Endpoints `/auth/forgot-password` e `/auth/reset-password`. (2026-09-08) |
 | 17 | **Email verification** | ✅ FEITO | `EmailVerificationService` envia token no registo; `REQUIRE_VERIFIED_EMAIL=true` força verificação no login. |
-| 18 | **Phone verification** | ❌ FALTA | Não há verificação de número de telefone (SMS OTP). Essencial para motoristas e entregadores. |
+| 18 | **Phone verification** | ✅ FEITO | `PhoneVerificationService` com OTP de 6 dígitos via SMS (hash SHA-256 em Redis, TTL 5 min, máx. 3 tentativas, cooldown 60s, limite 5/dia). `SmsService` suporta Twilio/webhook. Endpoints `/auth/phone/send-otp` e `/auth/phone/verify`. (2026-09-09) |
 
 ### Pagamentos & Wallet
 

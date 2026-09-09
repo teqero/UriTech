@@ -15,6 +15,7 @@ import { TwoFactorAuthService } from './two-factor-auth.service';
 import { LoginDto, RegisterDto, AuthResponseDto, ForgotPasswordDto, ResetPasswordDto } from './dto/auth.dto';
 import { RefreshTokenDto } from './dto/refresh.dto';
 import { PasswordResetService } from './password-reset.service';
+import { PhoneVerificationService } from './phone-verification.service';
 import { Public } from './public.decorator';
 import { CurrentUser } from './current-user.decorator';
 
@@ -26,6 +27,7 @@ export class AuthController {
     private emailVerificationService: EmailVerificationService,
     private twoFactorAuthService: TwoFactorAuthService,
     private passwordResetService: PasswordResetService,
+    private phoneVerificationService: PhoneVerificationService,
   ) {}
 
   @Public()
@@ -144,6 +146,41 @@ export class AuthController {
     return {
       success: true,
       message: 'Palavra-passe redefinida com sucesso. Todas as sessões anteriores foram terminadas.',
+    };
+  }
+
+  // ── Phone Verification (SMS OTP) ──
+
+  @Post('phone/send-otp')
+  @ApiBearerAuth('JWT-auth')
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @ApiOperation({ summary: 'Enviar código SMS', description: 'Envia código OTP de 6 dígitos para o telefone do utilizador (válido 5 min).' })
+  @ApiResponse({ status: 201, description: 'Código enviado' })
+  @ApiResponse({ status: 429, description: 'Cooldown ativo ou limite diário atingido' })
+  async sendPhoneOtp(@CurrentUser('sub') userId: string) {
+    const result = await this.phoneVerificationService.sendOtp(userId);
+    return {
+      success: true,
+      expiresInSeconds: result.expiresInSeconds,
+      message: 'Código de verificação enviado por SMS.',
+    };
+  }
+
+  @Post('phone/verify')
+  @ApiBearerAuth('JWT-auth')
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @ApiOperation({ summary: 'Verificar código SMS', description: 'Confirma o código OTP e marca o telefone como verificado.' })
+  @ApiResponse({ status: 201, description: 'Telefone verificado' })
+  @ApiResponse({ status: 400, description: 'Código incorreto ou expirado' })
+  async verifyPhoneOtp(
+    @CurrentUser('sub') userId: string,
+    @Body() body: { code: string },
+  ) {
+    const result = await this.phoneVerificationService.verifyOtp(userId, body.code);
+    return {
+      success: true,
+      verified: result.verified,
+      message: 'Telefone verificado com sucesso.',
     };
   }
 
