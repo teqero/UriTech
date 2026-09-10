@@ -32,6 +32,7 @@
     "@nestjs/throttler": "^6.2.1",
     "@nestjs/typeorm": "^10.0.2",
     "@nestjs/websockets": "^10.4.22",
+    "@sentry/node": "^10.74.0",
     "@uritech/shared": "*",
     "bcryptjs": "^2.4.3",
     "class-transformer": "^0.5.1",

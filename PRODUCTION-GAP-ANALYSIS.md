@@ -126,7 +126,7 @@ O projeto UriTech tem uma base sólida: arquitetura monorepo bem estruturada, ba
 |---|------|--------|---------|
 | 68 | **Log correlation** | ❌ FALTA | Cada request tem requestId mas não vejo propagation para todos os serviços (DB queries, Redis, etc.). |
 | 69 | **Structured logging** | ⚠️ PARCIAL | NestJS Logger é básico. Sem JSON logging para consumo por ELK/Loki. |
-| 70 | **Error tracking** | ❌ FALTA | Sem Sentry/Rollbar/bugsnag para capturar e agrupar erros automaticamente. |
+| 70 | **Error tracking** | ✅ FEITO | Sentry integrado no backend (`instrument.ts` + `SentryExceptionFilter` global): captura 5xx, filtra headers sensíveis (authorization/cookie), PII off por defeito, sampling 10% em prod. Ativo com `SENTRY_DSN`. Falta: apps mobile (sentry-expo). (2026-09-10) |
 | 71 | **Synthetic monitoring** | ❌ FALTA | Sem checks periódicos (Pingdom/UptimeRobot) de endpoints críticos de fora. |
 | 72 | **APM** | ❌ FALTA | Sem New Relic/Datadog/Dynatrace para performance monitoring de queries, external calls, etc. |
 

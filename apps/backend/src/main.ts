@@ -1,3 +1,7 @@
+// Sentry deve inicializar antes de qualquer outro módulo
+import { initSentry } from './instrument';
+const sentryEnabled = initSentry();
+
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
@@ -5,6 +9,7 @@ import { IoAdapter } from '@nestjs/platform-socket.io';
 import { json, urlencoded } from 'express';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
+import { SentryExceptionFilter } from './common/filters/sentry-exception.filter';
 
 const logger = new Logger('Bootstrap');
 
@@ -17,6 +22,12 @@ async function bootstrap() {
 
   // WebSocket adapter
   app.useWebSocketAdapter(new IoAdapter(app));
+
+  // Error tracking — reporta 5xx ao Sentry (inativo sem SENTRY_DSN)
+  app.useGlobalFilters(new SentryExceptionFilter());
+  if (sentryEnabled) {
+    logger.log('Sentry error tracking ativo');
+  }
 
   const isProd = process.env.NODE_ENV === 'production';
 

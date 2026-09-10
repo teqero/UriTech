@@ -40,3 +40,15 @@ VAPID_SUBJECT=mailto:admin@urigo.ao
 FIREBASE_PROJECT_ID=
 FIREBASE_CLIENT_EMAIL=
 FIREBASE_PRIVATE_KEY=
+
+# Error Tracking — Sentry (obrigatório em produção)
+SENTRY_DSN=
+
+# SMS — verificação de telefone (OTP)
+SMS_PROVIDER=webhook
+SMS_WEBHOOK_URL=
+# ou Twilio:
+# SMS_PROVIDER=twilio
+# TWILIO_ACCOUNT_SID=
+# TWILIO_AUTH_TOKEN=
+# TWILIO_FROM=
