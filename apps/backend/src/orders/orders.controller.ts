@@ -68,8 +68,10 @@ export class OrdersController {
   @ApiParam({ name: 'id', description: 'ID do pedido' })
   @ApiResponse({ status: 200, description: 'Detalhes do pedido' })
   @ApiResponse({ status: 404, description: 'Pedido não encontrado' })
-  findOne(@Param('id') id: string) {
-    return this.ordersService.findById(id);
+  async findOne(@Param('id') id: string) {
+    const order = await this.ordersService.findById(id);
+    if (!order) throw new NotFoundException('Pedido não encontrado');
+    return order;
   }
 
   @Post('service-checkout')

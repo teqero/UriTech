@@ -7,7 +7,7 @@ import { createTestApp, TestContext } from './utils/test-app';
 describe('AuthController (e2e)', () => {
   let ctx: TestContext;
   let app: INestApplication;
-  let usersService: jest.Mocked<Pick<UsersService, 'findByEmail' | 'findById' | 'create'>>;
+  let usersService: jest.Mocked<Pick<UsersService, 'findByEmail' | 'findByEmailWithSecurity' | 'findById' | 'create'>>;
 
   beforeAll(async () => {
     ctx = await createTestApp();
@@ -27,14 +27,16 @@ describe('AuthController (e2e)', () => {
   describe('POST /api/v1/auth/login', () => {
     it('autentica com credenciais válidas e devolve access + refresh tokens', async () => {
       const password = await bcrypt.hash('senha123', 10);
-      usersService.findByEmail.mockResolvedValue({
+      const mockUser = {
         id: 'user-1',
         name: 'Teste',
         email: 'teste@uritech.com',
         phone: '+244999999999',
         password,
         role: 'user',
-      } as any);
+      } as any;
+      usersService.findByEmail.mockResolvedValue(mockUser);
+      usersService.findByEmailWithSecurity.mockResolvedValue(mockUser);
 
       const res = await ctx.request
         .post('/api/v1/auth/login')
@@ -48,6 +50,7 @@ describe('AuthController (e2e)', () => {
 
     it('rejeita login com email inexistente', async () => {
       usersService.findByEmail.mockResolvedValue(null as any);
+      usersService.findByEmailWithSecurity.mockResolvedValue(null as any);
 
       await ctx.request
         .post('/api/v1/auth/login')
@@ -57,14 +60,16 @@ describe('AuthController (e2e)', () => {
 
     it('rejeita login com password errada', async () => {
       const password = await bcrypt.hash('senha123', 10);
-      usersService.findByEmail.mockResolvedValue({
+      const mockUser = {
         id: 'user-1',
         name: 'Teste',
         email: 'teste@uritech.com',
         phone: '+244999999999',
         password,
         role: 'user',
-      } as any);
+      } as any;
+      usersService.findByEmail.mockResolvedValue(mockUser);
+      usersService.findByEmailWithSecurity.mockResolvedValue(mockUser);
 
       await ctx.request
         .post('/api/v1/auth/login')
@@ -85,6 +90,7 @@ describe('AuthController (e2e)', () => {
         role: 'user',
       };
       usersService.findByEmail.mockResolvedValue(user as any);
+      usersService.findByEmailWithSecurity.mockResolvedValue(user as any);
       usersService.findById.mockResolvedValue(user as any);
 
       const loginRes = await ctx.request
@@ -123,6 +129,7 @@ describe('AuthController (e2e)', () => {
         role: 'user',
       };
       usersService.findByEmail.mockResolvedValue(user as any);
+      usersService.findByEmailWithSecurity.mockResolvedValue(user as any);
       usersService.findById.mockResolvedValue(user as any);
 
       const loginRes = await ctx.request

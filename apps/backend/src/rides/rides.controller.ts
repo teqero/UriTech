@@ -114,7 +114,7 @@ export class RidesController {
     if (!ride) throw new NotFoundException('Corrida não encontrada');
 
     if (user.role === 'driver') {
-      if (status === 'driver_found' && ride.status === 'searching') {
+      if (status === 'driver_found' && ride.status === 'searching' && !ride.driverId) {
         const updated = await this.ridesService.updateStatus(id, status, user.userId);
         if (updated) void this.notificationsService.notifyRideUpdate(updated);
         return updated;

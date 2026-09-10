@@ -21,6 +21,7 @@ import { UserEntity } from '../database/entities/user.entity';
 @Module({
   imports: [
     UsersModule,
+    ConfigModule,
     TypeOrmModule.forFeature([UserEntity]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({

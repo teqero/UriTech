@@ -1,11 +1,11 @@
 import { INestApplication, Module, ExecutionContext } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { Test } from '@nestjs/testing';
 import supertest from 'supertest';
 import { RidesController } from '~/rides/rides.controller';
 import { RidesService } from '~/rides/rides.service';
 import { WalletService } from '~/wallet/wallet.service';
-import { JwtAuthGuard } from '~/auth/jwt-auth.guard';
 import { NotificationsService } from '~/notifications/notifications.service';
 import { RedisService } from '~/redis/redis.service';
 import { MockRedisService } from './utils/mock-redis.service';
@@ -13,12 +13,22 @@ import { MockRedisService } from './utils/mock-redis.service';
 const mockUser = { sub: 'user-1', userId: 'user-1', email: 'joao@uritech.com', role: 'user' };
 const mockDriver = { sub: 'driver-1', userId: 'driver-1', email: 'budi@uritech.com', role: 'driver' };
 
+// O controller depende do JwtAuthGuard global (APP_GUARD no AuthModule).
+// Nos testes, registamos um mock como APP_GUARD que anexa o utilizador ao request.
+const mockGuardByRole = {
+  canActivate: (context: ExecutionContext) => {
+    const req = context.switchToHttp().getRequest();
+    req.user = req.headers['x-mock-role'] === 'driver' ? mockDriver : mockUser;
+    return true;
+  },
+};
+
 @Module({
   controllers: [RidesController],
   providers: [
     { provide: RidesService, useValue: null },
     { provide: WalletService, useValue: null },
-    { provide: JwtAuthGuard, useValue: { canActivate: () => true } },
+    { provide: APP_GUARD, useValue: mockGuardByRole },
     { provide: NotificationsService, useValue: { notifyRideUpdate: jest.fn(), sendToUser: jest.fn() } },
     { provide: RedisService, useValue: null },
   ],
@@ -69,14 +79,6 @@ describe('RidesController (e2e)', () => {
       .useValue(ridesServiceMock)
       .overrideProvider(WalletService)
       .useValue(walletServiceMock)
-      .overrideProvider(JwtAuthGuard)
-      .useValue({
-        canActivate: (context: ExecutionContext) => {
-          const req = context.switchToHttp().getRequest();
-          req.user = req.headers['x-mock-role'] === 'driver' ? mockDriver : mockUser;
-          return true;
-        },
-      })
       .overrideProvider(RedisService)
       .useValue(new MockRedisService())
       .compile();

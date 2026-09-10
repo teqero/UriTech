@@ -1,4 +1,5 @@
 import { INestApplication, Module, ExecutionContext } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { Test } from '@nestjs/testing';
 import supertest from 'supertest';
@@ -13,11 +14,21 @@ const mockUser = { sub: 'user-1', userId: 'user-1', email: 'joao@uritech.com', r
 const mockVendor = { sub: 'vendor-1', userId: 'vendor-1', email: 'kero@uritech.com', role: 'vendor' };
 const mockAdmin = { sub: 'admin-1', userId: 'admin-1', email: 'admin@uritech.com', role: 'admin' };
 
+// O controller depende do JwtAuthGuard global (APP_GUARD no AuthModule).
+// Nos testes, registamos um mock como APP_GUARD que anexa o utilizador ao request.
+const mockGuardByRole = {
+  canActivate: (context: ExecutionContext) => {
+    const req = context.switchToHttp().getRequest();
+    req.user = req.headers['x-mock-role'] === 'vendor' ? mockVendor : req.headers['x-mock-role'] === 'admin' ? mockAdmin : mockUser;
+    return true;
+  },
+};
+
 @Module({
   controllers: [OrdersController],
   providers: [
     { provide: OrdersService, useValue: null },
-    { provide: JwtAuthGuard, useValue: { canActivate: () => true } },
+    { provide: APP_GUARD, useValue: mockGuardByRole },
     { provide: NotificationsService, useValue: { notifyOrderUpdate: jest.fn() } },
     { provide: RedisService, useValue: null },
   ],
@@ -57,14 +68,6 @@ describe('OrdersController (e2e)', () => {
     })
       .overrideProvider(OrdersService)
       .useValue(ordersServiceMock)
-      .overrideProvider(JwtAuthGuard)
-      .useValue({
-        canActivate: (context: ExecutionContext) => {
-          const req = context.switchToHttp().getRequest();
-          req.user = req.headers['x-mock-role'] === 'vendor' ? mockVendor : req.headers['x-mock-role'] === 'admin' ? mockAdmin : mockUser;
-          return true;
-        },
-      })
       .overrideProvider(RedisService)
       .useValue(new MockRedisService())
       .compile();
