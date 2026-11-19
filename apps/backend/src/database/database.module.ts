@@ -11,6 +11,7 @@ import { WalletLedgerAppendOnly1725700000000 } from './migrations/1725700000000-
 import { AddEscrowHolds1725800000000 } from './migrations/1725800000000-AddEscrowHolds';
 import { AddPhoneVerified1725900000000 } from './migrations/1725900000000-AddPhoneVerified';
 import { AuditLogEntity } from './entities/audit-log.entity';
+import { KycAuditLogEntity } from './entities/kyc-audit-log.entity';
 import { MulticaixaReferenceEntity } from './entities/multicaixa-reference.entity';
 import { ClaimEvidenceEntity } from './entities/claim-evidence.entity';
 import { DriverEntity } from './entities/driver.entity';
@@ -37,6 +38,7 @@ const ENTITIES = [
   VendorEntity,
   MulticaixaReferenceEntity,
   AuditLogEntity,
+  KycAuditLogEntity,
   EscrowHoldEntity,
 ];
 
@@ -69,6 +71,14 @@ export class DatabaseModule implements OnModuleInit {
           retryAttempts: 5,
           retryDelay: 3000,
           connectTimeoutMS: 10000,
+          // Connection pooling explícito (só Postgres)
+          extra: config.type === 'postgres' ? {
+            max: Number(process.env.DB_POOL_MAX || 20),
+            min: Number(process.env.DB_POOL_MIN || 2),
+            idleTimeoutMillis: Number(process.env.DB_POOL_IDLE_MS || 30000),
+            connectionTimeoutMillis: Number(process.env.DB_POOL_CONNECT_MS || 10000),
+            statement_timeout: Number(process.env.DB_STATEMENT_TIMEOUT_MS || 30000),
+          } : undefined,
           // Migrações — desativamos auto-run (controlamos via MigrationService)
           migrationsRun: false,
           migrations: config.type === 'postgres'

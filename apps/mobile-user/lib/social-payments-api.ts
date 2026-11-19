@@ -71,6 +71,17 @@ export async function syncSocialPayment(id: string): Promise<SocialPaymentRecord
   return parseJson(res);
 }
 
+export async function updateSocialPayment(
+  id: string,
+  patch: { title?: string; description?: string; price?: number },
+): Promise<SocialPaymentRecord> {
+  const res = await apiFetch(`/social-payments/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(patch),
+  });
+  return parseJson(res);
+}
+
 export const PLATFORM_ICONS: Record<string, string> = {
   facebook: '📘',
   instagram: '📸',

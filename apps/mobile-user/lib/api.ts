@@ -31,8 +31,10 @@ export function getApiBaseUrl(): string {
 export async function checkApiHealth(): Promise<{ ok: boolean; url: string; message?: string }> {
   const url = getApiBaseUrl();
   try {
-    const res = await fetch(`${url}/insurers?active=true`, { method: 'GET' });
-    if (!res.ok) return { ok: false, url, message: `HTTP ${res.status}` };
+    const res = await fetch(`${url}/health`, { method: 'GET' });
+    if (res.ok) return { ok: true, url };
+    const fallback = await fetch(`${url}/insurers?active=true`, { method: 'GET' });
+    if (!fallback.ok) return { ok: false, url, message: `HTTP ${fallback.status}` };
     return { ok: true, url };
   } catch (e) {
     return { ok: false, url, message: e instanceof Error ? e.message : 'Sem ligação' };

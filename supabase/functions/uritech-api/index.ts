@@ -1,19 +1,43 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { getWalletSummary } from './wallet.ts';
 import { handleSocialPayments } from './social-payments.ts';
+import { handleWalletRoutes, handlePaymentRoutes } from './wallet-routes.ts';
+import { handleOrderRoutes } from './orders-routes.ts';
+import { handleRideRoutes } from './rides-routes.ts';
+import { handleExtrasRoutes } from './extras-routes.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers':
+    'authorization, x-client-info, apikey, content-type, x-request-id, x-urigo-client, x-urigo-channel',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+  'Access-Control-Expose-Headers': 'x-request-id',
 };
+
+let activeRequestId: string | undefined;
+
+function responseHeaders(contentType?: string): Record<string, string> {
+  const h: Record<string, string> = { ...corsHeaders };
+  if (contentType) h['Content-Type'] = contentType;
+  if (activeRequestId) h['X-Request-Id'] = activeRequestId;
+  return h;
+}
 
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    headers: responseHeaders('application/json'),
   });
+}
+
+function withRequestId(res: Response): Response {
+  if (!activeRequestId) return res;
+  const headers = new Headers(res.headers);
+  headers.set('X-Request-Id', activeRequestId);
+  for (const [k, v] of Object.entries(corsHeaders)) {
+    if (!headers.has(k)) headers.set(k, v);
+  }
+  return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
 }
 
 function routePath(url: URL): string {
@@ -26,41 +50,6 @@ function routePath(url: URL): string {
   return path;
 }
 
-function placeLabel(value: unknown): string {
-  if (!value) return 'Luanda';
-  if (typeof value === 'string') return value;
-  if (typeof value === 'object' && value !== null && 'address' in value) {
-    const address = (value as { address?: string }).address;
-    if (address) return address;
-  }
-  return JSON.stringify(value);
-}
-
-function mapRide(row: Record<string, unknown>) {
-  const origin = row.origin as string | null;
-  const destination = row.destination as string | null;
-  return {
-    id: row.id,
-    userId: row.user_id,
-    driverId: row.driver_id ?? undefined,
-    status: row.status,
-    mode: row.mode,
-    pickup: { latitude: -8.8383, longitude: 13.2344, address: origin ?? 'Origem', city: 'Luanda', country: 'Angola' },
-    destination: {
-      latitude: -8.8583,
-      longitude: 13.2312,
-      address: destination ?? 'Destino',
-      city: 'Luanda',
-      country: 'Angola',
-    },
-    fare: Number(row.price ?? 0),
-    distance: 5000,
-    duration: 900,
-    vehicleType: row.vehicle_type,
-    createdAt: row.created_at,
-  };
-}
-
 function resolveUserId(req: Request): string | null {
   const auth = req.headers.get('authorization');
   if (!auth) return null;
@@ -70,8 +59,18 @@ function resolveUserId(req: Request): string | null {
   return null;
 }
 
+async function dispatch(
+  result: { status: number; body: unknown; raw?: Response } | null,
+): Promise<Response | null> {
+  if (!result) return null;
+  if (result.raw instanceof Response) return withRequestId(result.raw);
+  return json(result.body, result.status);
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+
+  activeRequestId = req.headers.get('x-request-id') ?? crypto.randomUUID();
 
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
@@ -80,6 +79,7 @@ Deno.serve(async (req) => {
 
   const path = routePath(new URL(req.url));
   const method = req.method;
+  const userId = resolveUserId(req);
 
   try {
     if (path === '/settings/brand' && method === 'GET') {
@@ -112,56 +112,6 @@ Deno.serve(async (req) => {
       return json(PROMOS);
     }
 
-    if (path.startsWith('/rides/') && method === 'GET') {
-      const id = path.split('/')[2];
-      const { data, error } = await supabase.from('rides').select('*').eq('id', id).single();
-      if (error) return json({ message: 'Corrida não encontrada' }, 404);
-      return json(mapRide(data));
-    }
-
-    if (path === '/rides' && method === 'GET') {
-      const { data, error } = await supabase.from('rides').select('*').order('created_at', { ascending: false }).limit(50);
-      if (error) throw error;
-      return json((data ?? []).map(mapRide));
-    }
-
-    if (path === '/rides' && method === 'POST') {
-      const body = await req.json();
-      let userId = resolveUserId(req);
-      if (!userId && body.userId) userId = body.userId;
-
-      if (!userId) {
-        const { data: fallback } = await supabase
-          .from('users')
-          .select('id')
-          .eq('email', 'joao@uritech.com')
-          .single();
-        userId = fallback?.id ?? null;
-      }
-
-      if (!userId) return json({ message: 'Utilizador não autenticado' }, 401);
-
-      const row = {
-        user_id: userId,
-        status: 'searching',
-        mode: body.mode ?? 'fixed',
-        vehicle_type: body.vehicleType ?? body.vehicle_type ?? 'standard',
-        origin: placeLabel(body.pickup ?? body.origin),
-        destination: placeLabel(body.destination),
-        price: body.fare ?? body.price ?? 0,
-      };
-
-      const { data, error } = await supabase.from('rides').insert(row).select().single();
-      if (error) throw error;
-      return json(mapRide(data), 201);
-    }
-
-    if (path === '/orders' && method === 'GET') {
-      const { data, error } = await supabase.from('orders').select('*').order('created_at', { ascending: false }).limit(50);
-      if (error) throw error;
-      return json(data ?? []);
-    }
-
     if (path === '/drivers' && method === 'GET') {
       const { data, error } = await supabase.from('drivers').select('*').limit(50);
       if (error) throw error;
@@ -175,16 +125,25 @@ Deno.serve(async (req) => {
     }
 
     if (path === '/auth/login' && method === 'POST') {
-      const { email } = await req.json();
+      const body = await req.json();
+      const email = String(body.email ?? '');
+      const password = String(body.password ?? '');
+      if (!email) return json({ message: 'Email obrigatório' }, 400);
+      if (password && password !== 'demo123') {
+        return json({ message: 'Credenciais inválidas' }, 401);
+      }
+
       const { data: user, error } = await supabase.from('users').select('*').eq('email', email).single();
       if (error || !user) return json({ message: 'Credenciais inválidas' }, 401);
 
       return json({
         access_token: `demo-${user.id}`,
+        refresh_token: `refresh-${user.id}`,
         user: {
           id: user.id,
-          firstName: user.first_name,
-          lastName: user.last_name,
+          firstName: user.first_name ?? user.name?.split(' ')[0],
+          lastName: user.last_name ?? user.name?.split(' ').slice(1).join(' '),
+          name: user.name,
           email: user.email,
           phone: user.phone,
           role: user.role,
@@ -192,26 +151,47 @@ Deno.serve(async (req) => {
       });
     }
 
-    const userId = resolveUserId(req);
+    const extras = await handleExtrasRoutes(supabase, method, path, req, userId);
+    const extrasRes = await dispatch(extras);
+    if (extrasRes) return extrasRes;
 
-    if (path === '/wallet' && method === 'GET') {
+    if (path.startsWith('/rides')) {
+      const rides = await handleRideRoutes(supabase, method, path, req, userId);
+      const ridesRes = await dispatch(rides);
+      if (ridesRes) return ridesRes;
+    }
+
+    if (path.startsWith('/orders')) {
+      const orders = await handleOrderRoutes(supabase, method, path, req, userId);
+      const ordersRes = await dispatch(orders);
+      if (ordersRes) return ordersRes;
+    }
+
+    if (path.startsWith('/wallet') || path.startsWith('/payments/')) {
       if (!userId) return json({ message: 'Utilizador não autenticado' }, 401);
-      return json(await getWalletSummary(supabase, userId));
+      const wallet = await handleWalletRoutes(supabase, method, path, req, userId);
+      const walletRes = await dispatch(wallet);
+      if (walletRes) return walletRes;
+      const payments = await handlePaymentRoutes(supabase, method, path, req, userId);
+      const payRes = await dispatch(payments);
+      if (payRes) return payRes;
     }
 
     if (path.startsWith('/social-payments')) {
       const result = await handleSocialPayments(supabase, method, path, req, userId);
       if (result) {
-        if ('raw' in result && result.raw instanceof Response) return result.raw;
+        if ('raw' in result && result.raw instanceof Response) return withRequestId(result.raw);
         return json(result.body, result.status);
       }
     }
 
-    return json({ message: `Route not found: ${path}` }, 404);
+    return json({ message: `Route not found: ${path}`, requestId: activeRequestId }, 404);
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Internal error';
-    console.error(e);
-    return json({ message }, 500);
+    console.error(`[${activeRequestId}]`, e);
+    return json({ message, requestId: activeRequestId }, 500);
+  } finally {
+    activeRequestId = undefined;
   }
 });
 

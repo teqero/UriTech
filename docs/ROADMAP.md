@@ -43,8 +43,16 @@ Objectivo: passar de **~50%** (protótipo UI) para **80%+** (produto comercial).
 
 ## Métricas de sucesso
 
-- [ ] 100% fluxos base com backend persistente
-- [ ] Pagamento real end-to-end
+- [x] API edge com wallet, orders, rides, UriProva, UriPay (2026-11)
+- [x] Health check + refresh token na edge
+- [x] RLS em tabelas financeiras (migração)
+- [x] Build web Expo estável (`EXPO_EXPORT_WEB` + CI `build:mobile-web`)
+- [x] Telemetria leve + `X-Request-Id` + erros cliente na edge
+- [x] Bucket `uritech-uploads` para presigned upload
+- [ ] 100% fluxos base com backend persistente (NestJS VPS)
+- [ ] Pagamento real end-to-end (EMIS produção)
 - [ ] 52+ serviços on-demand no admin
-- [ ] 0 rotas órfãs no mobile
+- [x] 0 rotas órfãs no mobile (FIGMA-MAP 60/60)
 - [ ] AI surge/fraud em produção (mín. 2 features)
+
+Ver também: [WORLD-CLASS-PILLARS.md](./WORLD-CLASS-PILLARS.md)

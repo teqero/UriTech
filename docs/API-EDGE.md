@@ -1,0 +1,40 @@
+# API Edge (`uritech-api`)
+
+Base URL de produção:
+
+`https://akyzbuvdokdrjpuzhocg.supabase.co/functions/v1/uritech-api/api/v1`
+
+O cliente mobile usa apenas o sufixo do path (ex.: `/health`), porque `EXPO_PUBLIC_API_URL` já inclui `/api/v1`.
+
+## Observabilidade
+
+| Header | Direcção | Descrição |
+|--------|----------|-----------|
+| `X-Request-Id` | cliente → API → cliente | Correlaciona pedidos nos logs Supabase |
+| `X-UriGo-Client` | cliente | Nome e versão da app |
+| `X-UriGo-Channel` | cliente | `production`, `preview`, etc. |
+
+## Rotas P0
+
+| Método | Path | Notas |
+|--------|------|-------|
+| GET | `/health` | Inclui ping à base de dados |
+| POST | `/auth/login` | Demo: password `demo123` |
+| POST | `/auth/refresh` | Renova `demo-{userId}` |
+| GET/POST | `/wallet/*` | Requer `Authorization: Bearer demo-{id}` |
+| GET/POST/PATCH | `/social-payments/*` | UriPay (import, sync, pay) |
+| GET | `/social-payments/image` | Proxy de imagens OG |
+| GET/POST | `/orders/*` | Checkout demo |
+| GET/PATCH | `/rides/*` | Estado da corrida |
+| GET/POST | `/insurers`, `/claim-evidence` | UriProva |
+| POST | `/upload/presigned` | Bucket `uritech-uploads` |
+| POST | `/notifications/register` | Push token demo |
+| POST | `/telemetry/client-error` | Erros da app (logs edge) |
+
+## Respostas de erro
+
+```json
+{ "message": "...", "requestId": "uuid" }
+```
+
+Reporta o `requestId` ao suporte para localizar o incidente nos logs.

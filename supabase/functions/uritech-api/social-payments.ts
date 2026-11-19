@@ -172,6 +172,25 @@ export async function handleSocialPayments(
     return { status: 200, body: mapRow(record) };
   }
 
+  if (!action && method === 'PATCH') {
+    const body = await req.json();
+    const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    if (body.title != null) updates.title = String(body.title).slice(0, 512);
+    if (body.description != null) updates.description = String(body.description).slice(0, 4000);
+    if (body.price != null) {
+      const price = Number(body.price);
+      if (Number.isFinite(price) && price >= 0) {
+        updates.price = price;
+        updates.total = price;
+      }
+    }
+    const meta = (record.metadata ?? {}) as Record<string, unknown>;
+    updates.metadata = { ...meta, manuallyEdited: true };
+    const { data, error } = await supabase.from('social_payments').update(updates).eq('id', id).select().single();
+    if (error) throw error;
+    return { status: 200, body: mapRow(data) };
+  }
+
   if (action === 'checkout' && method === 'POST') {
     const body = await req.json();
     const calc = calcCheckout(record, body);

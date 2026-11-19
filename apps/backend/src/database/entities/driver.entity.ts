@@ -6,6 +6,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { encryptedColumn } from '../../common/crypto.service';
 
 @Entity('drivers')
 export class DriverEntity {
@@ -15,7 +16,7 @@ export class DriverEntity {
   @Column({ name: 'user_id', unique: true })
   userId!: string;
 
-  @Column({ name: 'license_number', nullable: true })
+  @Column({ name: 'license_number', nullable: true, transformer: encryptedColumn })
   licenseNumber?: string;
 
   @Column({ name: 'license_expiry', type: 'date', nullable: true })

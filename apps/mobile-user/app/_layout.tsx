@@ -6,6 +6,8 @@ import { StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from '../contexts/AuthContext';
 import { ProfileThemeProvider } from '../contexts/ProfileThemeContext';
+import { ApiStatusBanner } from '../components/ApiStatusBanner';
+import { RootErrorBoundary } from '../components/RootErrorBoundary';
 
 export const unstable_settings = {
   initialRouteName: 'index',
@@ -16,8 +18,10 @@ export default function RootLayout() {
     // @ts-expect-error GestureHandlerRootView children prop mismatch in newer RN types
     <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider>
+        <RootErrorBoundary>
         <AuthProvider>
           <ProfileThemeProvider>
+            <ApiStatusBanner />
             <StatusBar style="light" />
             <Stack screenOptions={{ headerShown: false }}>
               <Stack.Screen name="index" />
@@ -64,6 +68,7 @@ export default function RootLayout() {
             </Stack>
           </ProfileThemeProvider>
         </AuthProvider>
+        </RootErrorBoundary>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

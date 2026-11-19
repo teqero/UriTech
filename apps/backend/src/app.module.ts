@@ -23,6 +23,7 @@ import { StorageModule } from './storage/storage.module';
 import { HealthModule } from './health/health.module';
 import { MetricsModule } from './metrics/metrics.module';
 import { KycModule } from './kyc/kyc.module';
+import { RetentionModule } from './common/retention.module';
 import { RedisThrottlerStorage } from './common/guards/redis-throttler.storage';
 
 @Module({
@@ -73,6 +74,7 @@ import { RedisThrottlerStorage } from './common/guards/redis-throttler.storage';
     HealthModule,
     MetricsModule,
     KycModule,
+    RetentionModule,
   ],
   providers: [
     RedisThrottlerStorage,

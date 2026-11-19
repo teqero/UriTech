@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsString, MinLength, IsEnum } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, MinLength, IsEnum, IsOptional } from 'class-validator';
 import type { UserRole } from '@uritech/shared';
 import { IsStrongPassword } from '../../common/validators/is-strong-password.validator';
 
@@ -12,6 +12,14 @@ export class LoginDto {
   @IsString()
   @MinLength(6)
   password!: string;
+
+  @ApiProperty({
+    required: false,
+    description: 'Token CAPTCHA (obrigatório após 3 tentativas falhadas de login)',
+  })
+  @IsOptional()
+  @IsString()
+  captchaToken?: string;
 }
 
 export class RegisterDto {

@@ -151,7 +151,8 @@ export class RedisService implements OnApplicationShutdown {
     ttlSeconds: number,
   ): Promise<void> {
     const key = `refresh:${userId}:${tokenId}`;
-    await this.redis.setex(key, ttlSeconds, '1');
+    // Guardar timestamp de criação para permitir eviction da sessão mais antiga
+    await this.redis.setex(key, ttlSeconds, String(Date.now()));
   }
 
   async isRefreshTokenValid(userId: string, tokenId: string): Promise<boolean> {
@@ -163,6 +164,51 @@ export class RedisService implements OnApplicationShutdown {
   async deleteRefreshToken(userId: string, tokenId: string): Promise<void> {
     const key = `refresh:${userId}:${tokenId}`;
     await this.redis.del(key);
+  }
+
+  /**
+   * Limita sessões simultâneas: se o utilizador já tem `maxSessions`
+   * refresh tokens, revoga os mais antigos (por timestamp guardado).
+   */
+  async enforceSessionLimit(userId: string, maxSessions: number): Promise<number> {
+    const sessions = await this.listUserRefreshTokens(userId);
+    if (sessions.length < maxSessions) return 0;
+
+    // Ordenar por timestamp (mais antigo primeiro) e revogar o excesso
+    sessions.sort((a, b) => a.createdAt - b.createdAt);
+    const toRevoke = sessions.slice(0, sessions.length - maxSessions + 1);
+    for (const s of toRevoke) {
+      await this.redis.del(s.key);
+    }
+    this.logger.log(`Sessões revogadas por limite (${maxSessions}): user=${userId} revogadas=${toRevoke.length}`);
+    return toRevoke.length;
+  }
+
+  private async listUserRefreshTokens(userId: string): Promise<Array<{ key: string; createdAt: number }>> {
+    const prefix = `refresh:${userId}:`;
+
+    if (this.isMock) {
+      const result: Array<{ key: string; createdAt: number }> = [];
+      for (const key of this.redis.store?.keys() || []) {
+        if (key.startsWith(prefix)) {
+          const entry = this.redis.store.get(key);
+          result.push({ key, createdAt: Number(entry?.value) || 0 });
+        }
+      }
+      return result;
+    }
+
+    const result: Array<{ key: string; createdAt: number }> = [];
+    const stream = this.redis.scanStream({ match: `${prefix}*`, count: 100 });
+    for await (const keys of stream) {
+      if (Array.isArray(keys)) {
+        for (const key of keys) {
+          const value = await this.redis.get(key);
+          result.push({ key, createdAt: Number(value) || 0 });
+        }
+      }
+    }
+    return result;
   }
 
   // ── Password Reset Tokens (single-use, TTL curto) ──

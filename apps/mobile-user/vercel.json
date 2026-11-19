@@ -1,8 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
-  "installCommand": "npm ci",
-  "buildCommand": "npm run build --workspace=@uritech/shared && cd apps/mobile-user && EXPO_PUBLIC_API_URL=https://akyzbuvdokdrjpuzhocg.supabase.co/functions/v1/uritech-api/api/v1 npx expo export --platform web",
+  "installCommand": "npm ci --legacy-peer-deps",
+  "buildCommand": "node scripts/build-mobile-web.mjs",
   "outputDirectory": "apps/mobile-user/dist",
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }

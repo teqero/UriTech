@@ -7,6 +7,7 @@ import { UsersService } from '../users/users.service';
 import { RedisService } from '../redis/redis.service';
 import { EmailVerificationService } from './email-verification.service';
 import { TwoFactorAuthService } from './two-factor-auth.service';
+import { CaptchaService } from '../common/captcha.service';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -27,12 +28,16 @@ describe('AuthService', () => {
     isRefreshTokenValid: jest.fn(),
     deleteRefreshToken: jest.fn(),
     addToBlacklist: jest.fn(),
+    enforceSessionLimit: jest.fn().mockResolvedValue(0),
   };
   const emailVerificationService = {
     sendVerificationEmail: jest.fn(),
   };
   const twoFactorAuthService = {
     verifyToken: jest.fn(),
+  };
+  const captchaService = {
+    verify: jest.fn().mockResolvedValue(true),
   };
 
   beforeEach(async () => {
@@ -45,6 +50,7 @@ describe('AuthService', () => {
         { provide: RedisService, useValue: redisService },
         { provide: EmailVerificationService, useValue: emailVerificationService },
         { provide: TwoFactorAuthService, useValue: twoFactorAuthService },
+        { provide: CaptchaService, useValue: captchaService },
       ],
     }).compile();
 

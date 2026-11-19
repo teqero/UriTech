@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView, StyleSheet,
-  Image, ActivityIndicator, useColorScheme, Linking,
+  Image, ActivityIndicator, useColorScheme, Linking, TextInput,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, borderRadius, formatCurrency } from '@uritech/shared';
-import { fetchSocialPayment, platformLabel, PLATFORM_ICONS, proxyImageUrl, syncSocialPayment } from '../../lib/social-payments-api';
+import {
+  fetchSocialPayment, platformLabel, PLATFORM_ICONS, proxyImageUrl,
+  syncSocialPayment, updateSocialPayment,
+} from '../../lib/social-payments-api';
 
 export default function ConfirmacaoScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -22,16 +25,32 @@ export default function ConfirmacaoScreen() {
   const muted = dark ? '#9ca3af' : colors.gray500;
 
   const [refreshing, setRefreshing] = useState(false);
+  const [priceDraft, setPriceDraft] = useState('');
+  const [savingPrice, setSavingPrice] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) return;
     setLoading(true);
     try {
-      setProduct(await fetchSocialPayment(id));
+      const p = await fetchSocialPayment(id);
+      setProduct(p);
+      if (p.price > 0) setPriceDraft(String(p.price));
     } finally {
       setLoading(false);
     }
   }, [id]);
+
+  const handleSavePrice = async () => {
+    if (!id) return;
+    const price = Number(priceDraft.replace(/\s/g, '').replace(/\./g, '').replace(',', '.'));
+    if (!Number.isFinite(price) || price <= 0) return;
+    setSavingPrice(true);
+    try {
+      setProduct(await updateSocialPayment(id, { price }));
+    } finally {
+      setSavingPrice(false);
+    }
+  };
 
   const handleRefresh = async () => {
     if (!id) return;
@@ -119,9 +138,23 @@ export default function ConfirmacaoScreen() {
           ) : null}
 
           <Text style={[styles.title, { color: text }]}>{product.title}</Text>
-          <Text style={[styles.price, { color: '#6C63FF' }]}>
-            {product.price > 0 ? formatCurrency(product.price) : 'Preço a confirmar no checkout'}
-          </Text>
+          {product.price > 0 ? (
+            <Text style={[styles.price, { color: '#6C63FF' }]}>{formatCurrency(product.price)}</Text>
+          ) : (
+            <View style={styles.priceEditRow}>
+              <TextInput
+                style={[styles.priceInput, { color: text, borderColor: dark ? '#333' : colors.gray200, backgroundColor: dark ? '#252530' : colors.gray50 }]}
+                placeholder="Preço em Kz"
+                placeholderTextColor={muted}
+                keyboardType="numeric"
+                value={priceDraft}
+                onChangeText={setPriceDraft}
+              />
+              <TouchableOpacity style={styles.savePriceBtn} onPress={() => void handleSavePrice()} disabled={savingPrice}>
+                {savingPrice ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.savePriceText}>Guardar</Text>}
+              </TouchableOpacity>
+            </View>
+          )}
 
           {product.description ? (
             <Text style={[styles.desc, { color: muted }]}>{product.description}</Text>
@@ -194,6 +227,10 @@ const styles = StyleSheet.create({
   refreshBtnText: { fontSize: 12, fontWeight: '700', color: '#6C63FF' },
   title: { fontSize: 20, fontWeight: '800', marginBottom: 8 },
   price: { fontSize: 24, fontWeight: '800', marginBottom: spacing.md },
+  priceEditRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: spacing.md },
+  priceInput: { flex: 1, borderWidth: 1, borderRadius: borderRadius.lg, paddingHorizontal: spacing.md, paddingVertical: 12, fontSize: 16, fontWeight: '700' },
+  savePriceBtn: { backgroundColor: '#6C63FF', borderRadius: borderRadius.lg, paddingHorizontal: 16, paddingVertical: 12, minWidth: 88, alignItems: 'center' },
+  savePriceText: { color: colors.white, fontWeight: '800', fontSize: 13 },
   desc: { fontSize: 14, lineHeight: 20, marginBottom: spacing.lg },
   metaGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: spacing.lg },
   metaChip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, minWidth: '45%' },

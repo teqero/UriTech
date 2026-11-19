@@ -11,6 +11,7 @@
     "dev": "npm run build --workspace=@uritech/shared && turbo run dev --filter=!@uritech/shared",
     "start:all": "powershell -ExecutionPolicy Bypass -File ./start-all.ps1",
     "start:all:kill": "powershell -ExecutionPolicy Bypass -File ./start-all.ps1 -KillPorts",
+    "build:mobile-web": "node scripts/build-mobile-web.mjs",
     "deploy:mobile-web": "npx vercel link --project web-user --yes && npx vercel deploy --prod --yes --local-config apps/mobile-user/vercel.json",
     "build": "turbo run build",
     "lint": "turbo run lint",

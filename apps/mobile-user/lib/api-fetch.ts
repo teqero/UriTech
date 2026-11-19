@@ -1,5 +1,6 @@
 import { getApiBaseUrl } from './api';
 import { getRefreshToken, loadAuthSession, saveAuthSession } from './auth-storage';
+import { clientTelemetryHeaders, rotateClientRequestId } from './client-diagnostics';
 
 let refreshPromise: Promise<string> | null = null;
 
@@ -56,13 +57,24 @@ export async function apiFetch(
     authToken = session?.accessToken ?? null;
   }
 
+  const passed = init.headers as Record<string, string> | undefined;
+  const requestId =
+    passed && typeof passed === 'object' && passed['X-Request-Id']
+      ? String(passed['X-Request-Id'])
+      : rotateClientRequestId();
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...(init.headers as Record<string, string> | undefined),
+    ...clientTelemetryHeaders(),
+    ...(passed ?? {}),
+    'X-Request-Id': requestId,
   };
   if (authToken) headers.Authorization = `Bearer ${authToken}`;
 
   let res = await fetch(url, { ...init, headers });
+  if (res.status >= 502 && res.status <= 504) {
+    await new Promise((r) => setTimeout(r, 400));
+    res = await fetch(url, { ...init, headers });
+  }
 
   if (res.status === 401) {
     const noRetry = (init.headers && typeof init.headers === 'object' && 'X-No-Retry' in init.headers) ? true : false;

@@ -8,10 +8,12 @@ import { UsersService } from '../users/users.service';
 import { RedisService } from '../redis/redis.service';
 import { EmailVerificationService } from './email-verification.service';
 import { TwoFactorAuthService } from './two-factor-auth.service';
+import { CaptchaService } from '../common/captcha.service';
 
 const ACCESS_TTL_SECONDS = 15 * 60; // 15 min
 const REFRESH_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 dias
 const PARTIAL_AUTH_TTL_SECONDS = 5 * 60; // 5 min para completar 2FA
+const CAPTCHA_AFTER_FAILED_ATTEMPTS = 3;
 
 interface TokenPayload {
   sub: string;
@@ -34,6 +36,7 @@ export class AuthService {
     private redisService: RedisService,
     private emailVerificationService: EmailVerificationService,
     private twoFactorAuthService: TwoFactorAuthService,
+    private captchaService: CaptchaService,
   ) {}
 
   private signAccessToken(payload: Omit<TokenPayload, 'jti' | 'type' | 'exp'>): string {
@@ -75,6 +78,16 @@ export class AuthService {
     if (!isValid) {
       await this.usersService.recordFailedLogin(user.id);
       throw new UnauthorizedException('Credenciais inválidas');
+    }
+
+    // CAPTCHA obrigatório após 3 falhas (anti brute-force automatizado)
+    if ((user.failedLoginAttempts ?? 0) >= CAPTCHA_AFTER_FAILED_ATTEMPTS) {
+      const captchaOk = await this.captchaService.verify(dto.captchaToken);
+      if (!captchaOk) {
+        throw new UnauthorizedException(
+          'Verificação CAPTCHA necessária. Complete o desafio e tente novamente.',
+        );
+      }
     }
 
     // Reset failed attempts
@@ -147,6 +160,9 @@ export class AuthService {
       REFRESH_TTL_SECONDS,
     );
 
+    // Limite de sessões simultâneas (revoga as mais antigas)
+    await this.redisService.enforceSessionLimit(user.id, 5);
+
     const { password: _, emailVerificationToken: __, emailVerificationExpiresAt: ___, twoFactorSecret: ____, twoFactorBackupCodes: _____, ...safeUser } = user;
 
     return {
@@ -216,6 +232,9 @@ export class AuthService {
       REFRESH_TTL_SECONDS,
     );
 
+    // Limite de sessões simultâneas (revoga as mais antigas)
+    await this.redisService.enforceSessionLimit(user.id, 5);
+
     return {
       ...buildAuthSession(accessToken, {
         id: user.id,
@@ -277,6 +296,9 @@ export class AuthService {
       newRefreshJti.jti,
       REFRESH_TTL_SECONDS,
     );
+
+    // Limite de sessões simultâneas (revoga as mais antigas)
+    await this.redisService.enforceSessionLimit(user.id, 5);
 
     return {
       ...buildAuthSession(newAccessToken, {

@@ -20,6 +20,7 @@ const QUICK_LINKS = [
   { label: 'Agendar Viagem', route: '/agendar', icon: '📅' },
   { label: 'SecurePay', route: '/securepay', icon: '🔒', desc: 'Pagar com Segurança' },
   { label: 'UriProva', route: '/uriprova', icon: '📋', desc: 'Evidências de sinistro' },
+  { label: 'Pagar por Link', route: '/pagar-produto', icon: '🔗', desc: 'UriPay — anúncio social' },
 ] as const;
 
 const ServiceTile = memo(function ServiceTile({

@@ -4,16 +4,27 @@ const appJson = require('./app.json');
 module.exports = () => {
   const googleMapsApiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ?? '';
 
-  const plugins = [...appJson.expo.plugins];
+  const isWebExport = process.env.EXPO_EXPORT_WEB === '1';
+  let plugins = [...appJson.expo.plugins];
+  if (isWebExport) {
+    plugins = plugins.filter((p) => (Array.isArray(p) ? p[0] : p) === 'expo-router');
+  }
   // react-native-maps não tem config plugin Expo válido; chave Google só em android.config
 
-  plugins.push([
+  if (!isWebExport) plugins.push([
     'expo-notifications',
     {
       icon: './assets/icon.png',
       color: '#00AA13',
     },
   ]);
+
+  if (isWebExport) {
+    return {
+      ...appJson,
+      expo: { ...appJson.expo, plugins },
+    };
+  }
 
   return {
     ...appJson,

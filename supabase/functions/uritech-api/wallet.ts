@@ -54,6 +54,7 @@ export async function getWalletSummary(supabase: SupabaseClient, userId: string)
       amount: Number(t.amount),
       balanceAfter: Number(t.balance_after),
       description: t.description,
+      counterpartyEmail: t.counterparty_email ?? undefined,
       createdAt: t.created_at,
     })),
   };

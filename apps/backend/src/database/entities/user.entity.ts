@@ -6,6 +6,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import type { UserRole, VendorSubtype } from '@uritech/shared';
+import { encryptedColumn } from '../../common/crypto.service';
 
 export type KycTier = 'unverified' | 'basic' | 'verified' | 'premium';
 export type KycStatus = 'pending' | 'approved' | 'rejected' | 'expired';
@@ -67,7 +68,7 @@ export class UserEntity {
   @Column({ name: 'kyc_status', default: 'pending' })
   kycStatus!: KycStatus;
 
-  @Column({ name: 'kyc_document_number', nullable: true })
+  @Column({ name: 'kyc_document_number', nullable: true, transformer: encryptedColumn })
   kycDocumentNumber?: string;
 
   @Column({ name: 'kyc_document_type', nullable: true })

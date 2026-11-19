@@ -1,5 +1,6 @@
 import type { Service, ServiceType, OnboardingSlide, PaymentMethod, Store, VehicleOption } from './types';
 import { colors } from './theme';
+import { PRODUCTION_EDGE_API_URL } from './api-url';
 
 export const APP_NAME = 'UriGo';
 export const APP_TAGLINE = 'A sua cidade na palma da mão';
@@ -269,4 +270,4 @@ export const DEFAULT_API_INTEGRATIONS = [
 export const API_BASE_URL =
   process.env.EXPO_PUBLIC_API_URL ||
   process.env.NEXT_PUBLIC_API_URL ||
-  'http://localhost:4000/api/v1';
+  PRODUCTION_EDGE_API_URL;

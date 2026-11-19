@@ -12,13 +12,13 @@
       "distribution": "internal",
       "android": { "buildType": "apk" },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://api.seudominio.ao/api/v1"
+        "EXPO_PUBLIC_API_URL": "https://akyzbuvdokdrjpuzhocg.supabase.co/functions/v1/uritech-api/api/v1"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://api.seudominio.ao/api/v1"
+        "EXPO_PUBLIC_API_URL": "https://akyzbuvdokdrjpuzhocg.supabase.co/functions/v1/uritech-api/api/v1"
       }
     }
   },
