@@ -5,6 +5,7 @@ import { handleWalletRoutes, handlePaymentRoutes } from './wallet-routes.ts';
 import { handleOrderRoutes } from './orders-routes.ts';
 import { handleRideRoutes } from './rides-routes.ts';
 import { handleExtrasRoutes } from './extras-routes.ts';
+import { handleAuthRoutes } from './auth-routes.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -124,32 +125,9 @@ Deno.serve(async (req) => {
       return json(data ?? []);
     }
 
-    if (path === '/auth/login' && method === 'POST') {
-      const body = await req.json();
-      const email = String(body.email ?? '');
-      const password = String(body.password ?? '');
-      if (!email) return json({ message: 'Email obrigatório' }, 400);
-      if (password && password !== 'demo123') {
-        return json({ message: 'Credenciais inválidas' }, 401);
-      }
-
-      const { data: user, error } = await supabase.from('users').select('*').eq('email', email).single();
-      if (error || !user) return json({ message: 'Credenciais inválidas' }, 401);
-
-      return json({
-        access_token: `demo-${user.id}`,
-        refresh_token: `refresh-${user.id}`,
-        user: {
-          id: user.id,
-          firstName: user.first_name ?? user.name?.split(' ')[0],
-          lastName: user.last_name ?? user.name?.split(' ').slice(1).join(' '),
-          name: user.name,
-          email: user.email,
-          phone: user.phone,
-          role: user.role,
-        },
-      });
-    }
+    const auth = await handleAuthRoutes(supabase, method, path, req);
+    const authRes = await dispatch(auth);
+    if (authRes) return authRes;
 
     const extras = await handleExtrasRoutes(supabase, method, path, req, userId);
     const extrasRes = await dispatch(extras);

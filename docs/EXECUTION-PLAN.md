@@ -29,10 +29,10 @@ Checklist de lançamento (quando for a hora):
 
 | ID | Issue | Entregável | Done when |
 |----|-------|------------|-----------|
-| A1 | [#2](https://github.com/teqero/UriTech/issues/2) Auth produção (sair de `demo123`) | Login edge/Nest alinhados | Demo só com flag/test |
+| A1 | [#2](https://github.com/teqero/UriTech/issues/2) Auth produção (sair de `demo123`) | Login bcrypt + flag demo | **Feito** (issue fechada) |
 | A2 | [#3](https://github.com/teqero/UriTech/issues/3) SMS OTP + email | Reutilizar Nest | Verificação real ou flag |
-| A3 | [#4](https://github.com/teqero/UriTech/issues/4) Sentry mobile | DSN + boundaries | Crash de teste no Sentry |
-| A4 | [#5](https://github.com/teqero/UriTech/issues/5) Smoke CI API | `/health`, login, wallet | CI falha em 5xx |
+| A3 | [#4](https://github.com/teqero/UriTech/issues/4) Sentry mobile | `EXPO_PUBLIC_SENTRY_DSN` + boundaries | Crash com DSN no Sentry |
+| A4 | [#5](https://github.com/teqero/UriTech/issues/5) Smoke CI API | Job `edge-api-smoke` | CI falha em 5xx |
 
 ### Sprint B — Uma API canónica (1–2 semanas)
 

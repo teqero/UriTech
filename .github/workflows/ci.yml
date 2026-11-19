@@ -74,3 +74,24 @@ jobs:
           sleep 8
           curl -fsS http://localhost:4000/api/v1/services
           kill $PID
+
+  edge-api-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Health
+        run: |
+          set -e
+          BASE="${EDGE_API_BASE:-https://akyzbuvdokdrjpuzhocg.supabase.co/functions/v1/uritech-api/api/v1}"
+          curl -fsS --max-time 30 "$BASE/health" | tee /tmp/health.json
+          grep -q '"status":"ok"' /tmp/health.json
+
+      - name: Login + wallet
+        run: |
+          set -e
+          BASE="${EDGE_API_BASE:-https://akyzbuvdokdrjpuzhocg.supabase.co/functions/v1/uritech-api/api/v1}"
+          curl -fsS --max-time 30 -X POST "$BASE/auth/login" \
+            -H 'Content-Type: application/json' \
+            -d '{"email":"joao@uritech.com","password":"demo123"}' | tee /tmp/login.json
+          TOKEN=$(node -e "const j=require('/tmp/login.json'); if(!j.access_token) process.exit(1); process.stdout.write(j.access_token)")
+          curl -fsS --max-time 30 "$BASE/wallet" -H "Authorization: Bearer $TOKEN" | tee /tmp/wallet.json
+          grep -qE '"balance"|"currency"|"transactions"' /tmp/wallet.json

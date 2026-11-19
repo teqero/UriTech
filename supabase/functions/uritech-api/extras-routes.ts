@@ -1,4 +1,5 @@
 import type { SupabaseClient } from 'jsr:@supabase/supabase-js@2';
+import { authModeInfo } from './auth-routes.ts';
 
 function claimRef(): string {
   const n = Math.floor(10000 + Math.random() * 90000);
@@ -116,6 +117,7 @@ export async function handleExtrasRoutes(
         checks: {
           database: error ? { status: 'down', message: error.message, responseTimeMs: dbMs } : { status: 'up', responseTimeMs: dbMs },
         },
+        auth: authModeInfo(),
       },
     };
   }
@@ -124,31 +126,6 @@ export async function handleExtrasRoutes(
     const body = await req.json().catch(() => ({}));
     console.warn('[client-error]', JSON.stringify({ userId, ...body }).slice(0, 4000));
     return { status: 200, body: { received: true } };
-  }
-
-  if (path === '/auth/refresh' && method === 'POST') {
-    const { refreshToken } = await req.json();
-    const token = String(refreshToken ?? '');
-    const match = token.match(/^refresh-(.+)$/);
-    if (!match) return { status: 401, body: { message: 'Refresh token inválido' } };
-    const userId = match[1];
-    const { data: user } = await supabase.from('users').select('id, email, role, first_name, last_name, name, phone').eq('id', userId).single();
-    if (!user) return { status: 401, body: { message: 'Utilizador não encontrado' } };
-    return {
-      status: 200,
-      body: {
-        access_token: `demo-${userId}`,
-        refresh_token: token,
-        user: {
-          id: user.id,
-          firstName: user.first_name ?? user.name?.split(' ')[0],
-          lastName: user.last_name,
-          email: user.email,
-          phone: user.phone,
-          role: user.role,
-        },
-      },
-    };
   }
 
   if (path === '/insurers' && method === 'GET') {

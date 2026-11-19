@@ -19,8 +19,16 @@ O cliente mobile usa apenas o sufixo do path (ex.: `/health`), porque `EXPO_PUBL
 | Método | Path | Notas |
 |--------|------|-------|
 | GET | `/health` | Inclui ping à base de dados |
-| POST | `/auth/login` | Demo: password `demo123` |
-| POST | `/auth/refresh` | Renova `demo-{userId}` |
+| POST | `/auth/login` | Password bcrypt (coluna `users.password`). Bypass `demo123` **só** com secret `ALLOW_DEMO_AUTH=true`. Password vazia → 400 |
+| POST | `/auth/refresh` | Renova token `demo-{userId}` (prefixo legado; não implica modo demo) |
+
+### Auth env
+
+| Secret | Default | Efeito |
+|--------|---------|--------|
+| `ALLOW_DEMO_AUTH` | off | Se `true`, aceita `demo123` mesmo sem hash correspondente |
+
+`GET /health` inclui `auth: { demoAuth, passwordAuth }`.
 | GET/POST | `/wallet/*` | Requer `Authorization: Bearer demo-{id}` |
 | GET/POST/PATCH | `/social-payments/*` | UriPay (import, sync, pay) |
 | GET | `/social-payments/image` | Proxy de imagens OG |

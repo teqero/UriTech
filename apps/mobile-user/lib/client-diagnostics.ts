@@ -1,6 +1,7 @@
 import { APP_BUILD_CHANNEL, APP_CLIENT_NAME, APP_VERSION } from '@uritech/shared';
 import { Platform } from 'react-native';
 import { getApiBaseUrl } from './api';
+import { captureException } from './sentry';
 
 function newRequestId(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -35,6 +36,8 @@ export async function reportClientError(
   const message = error instanceof Error ? error.message : String(error);
   const stack = error instanceof Error ? error.stack : undefined;
   const base = getApiBaseUrl().replace(/\/$/, '');
+
+  void captureException(error, { platform: Platform.OS, ...context });
 
   try {
     await fetch(`${base}/telemetry/client-error`, {
