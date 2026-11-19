@@ -46,7 +46,7 @@ Checklist de lançamento (quando for a hora):
 
 | ID | Issue | Entregável | Done when |
 |----|-------|------------|-----------|
-| C1 | [#9](https://github.com/teqero/UriTech/issues/9) Taxi→tracking→pay | Estados na DB | E2E manual documentado |
+| C1 | [#9](https://github.com/teqero/UriTech/issues/9) Taxi→tracking→pay | `docs/TAXI-E2E-STAGING.md` + driver PATCH | **Feito** — estados persistidos |
 | C2 | [#10](https://github.com/teqero/UriTech/issues/10) UriPay→escrow | Fluxo mobile+API | Ledger/escrow registado |
 | C3 | [#11](https://github.com/teqero/UriTech/issues/11) UriProva upload→claim | Bucket uploads | Ref + hash visíveis |
 

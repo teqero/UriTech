@@ -1,23 +1,30 @@
-import { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { DEFAULT_ORIGIN, colors, spacing, borderRadius, previewDemoPlace } from '@uritech/shared';
 import { UriMap } from '../../components/UriMap';
+import { updateRideStatus } from '../../lib/rides-api';
 import { useRideSocket } from '../../lib/use-ride-socket';
 import { useUserLocation } from '../../lib/use-user-location';
 
 export default function NavigationScreen() {
-  const { dest, rideId } = useLocalSearchParams<{ dest?: string; rideId?: string }>();
+  const { dest, rideId, fare } = useLocalSearchParams<{ dest?: string; rideId?: string; fare?: string }>();
   const [phase, setPhase] = useState<'pickup' | 'dropoff'>('pickup');
+  const [busy, setBusy] = useState(false);
 
   const destination = dest ? previewDemoPlace(dest) : undefined;
   const pickup = DEFAULT_ORIGIN;
 
-  // WebSocket para enviar localização do motorista em tempo real
   const { connected, sendDriverLocation } = useRideSocket(rideId ?? null);
   const { location: userLocation } = useUserLocation(true);
 
-  // Enviar localização do motorista a cada 5 segundos
+  useEffect(() => {
+    if (!rideId) return;
+    void updateRideStatus(rideId, 'driver_arriving').catch(() => {
+      /* polling/WS still work if already advanced */
+    });
+  }, [rideId]);
+
   useEffect(() => {
     if (!rideId || !connected || !userLocation) return;
 
@@ -27,6 +34,29 @@ export default function NavigationScreen() {
 
     return () => clearInterval(interval);
   }, [rideId, connected, userLocation, sendDriverLocation]);
+
+  const onArrivedPickup = useCallback(async () => {
+    if (!rideId) {
+      setPhase('dropoff');
+      return;
+    }
+    setBusy(true);
+    try {
+      await updateRideStatus(rideId, 'in_progress');
+      setPhase('dropoff');
+    } catch (e) {
+      Alert.alert('Estado', e instanceof Error ? e.message : 'Não foi possível actualizar');
+    } finally {
+      setBusy(false);
+    }
+  }, [rideId]);
+
+  const onArrivedDestination = useCallback(() => {
+    router.replace({
+      pathname: '/driver/trip-complete',
+      params: { rideId: rideId ?? '', fare: fare ?? '' },
+    });
+  }, [rideId, fare]);
 
   return (
     <View style={styles.container}>
@@ -74,11 +104,19 @@ export default function NavigationScreen() {
         </Text>
 
         {phase === 'pickup' ? (
-          <TouchableOpacity style={styles.arrivedBtn} onPress={() => setPhase('dropoff')}>
-            <Text style={styles.arrivedText}>CHEGUEI À RECOLHA</Text>
+          <TouchableOpacity
+            style={[styles.arrivedBtn, busy && styles.btnDisabled]}
+            onPress={onArrivedPickup}
+            disabled={busy}
+          >
+            {busy ? (
+              <ActivityIndicator color={colors.white} />
+            ) : (
+              <Text style={styles.arrivedText}>CHEGUEI À RECOLHA</Text>
+            )}
           </TouchableOpacity>
         ) : (
-          <TouchableOpacity style={styles.arrivedBtn} onPress={() => router.replace('/driver/trip-complete')}>
+          <TouchableOpacity style={styles.arrivedBtn} onPress={onArrivedDestination}>
             <Text style={styles.arrivedText}>CHEGOU AO DESTINO</Text>
           </TouchableOpacity>
         )}
@@ -106,5 +144,6 @@ const styles = StyleSheet.create({
   destination: { fontSize: 15, fontWeight: '600', marginTop: 4 },
   address: { fontSize: 13, color: colors.gray500, marginTop: 4, marginBottom: spacing.xl },
   arrivedBtn: { backgroundColor: colors.primary, padding: spacing.lg, borderRadius: borderRadius.lg, alignItems: 'center' },
+  btnDisabled: { opacity: 0.7 },
   arrivedText: { color: colors.white, fontWeight: '700', fontSize: 15 },
 });

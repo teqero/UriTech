@@ -28,7 +28,11 @@ export default function RideRequestScreen() {
       await acceptRide(rideId);
       router.push({
         pathname: '/driver/navigation',
-        params: { dest: ride?.destination.address ?? '', rideId },
+        params: {
+          dest: ride?.destination.address ?? '',
+          rideId,
+          fare: String(ride?.fare ?? ''),
+        },
       });
     } catch (e) {
       Alert.alert('Aceitar', e instanceof Error ? e.message : 'Não foi possível aceitar');

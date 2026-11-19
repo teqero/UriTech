@@ -1,22 +1,56 @@
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { router } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
 import { colors, spacing, borderRadius, formatCurrency } from '@uritech/shared';
+import { updateRideStatus } from '../../lib/rides-api';
 
 export default function TripCompleteScreen() {
+  const { rideId, fare } = useLocalSearchParams<{ rideId?: string; fare?: string }>();
+  const [done, setDone] = useState(!rideId);
+  const [error, setError] = useState<string | null>(null);
+  const fareAmount = Number(fare);
+  const displayFare = Number.isFinite(fareAmount) && fareAmount > 0 ? fareAmount : 2800;
+
+  useEffect(() => {
+    if (!rideId) return;
+    let cancelled = false;
+    void updateRideStatus(rideId, 'completed')
+      .then(() => {
+        if (!cancelled) setDone(true);
+      })
+      .catch((e) => {
+        if (!cancelled) {
+          setError(e instanceof Error ? e.message : 'Falha ao concluir');
+          setDone(true);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [rideId]);
+
   return (
     <View style={styles.container}>
-      <Text style={styles.icon}>✅</Text>
+      {!done ? (
+        <ActivityIndicator size="large" color="#1A73E8" style={{ marginBottom: spacing.lg }} />
+      ) : (
+        <Text style={styles.icon}>✅</Text>
+      )}
       <Text style={styles.title}>Viagem Concluída!</Text>
-      <Text style={styles.subtitle}>O pagamento foi creditado na sua conta UriPay.</Text>
+      <Text style={styles.subtitle}>
+        {error
+          ? error
+          : 'Pagamento UriPay do passageiro já foi debitado na reserva. Estado gravado na BD.'}
+      </Text>
 
       <View style={styles.summary}>
         <View style={styles.row}>
-          <Text style={styles.label}>Ganho desta viagem</Text>
-          <Text style={styles.value}>{formatCurrency(2800)}</Text>
+          <Text style={styles.label}>Tarifa da viagem</Text>
+          <Text style={styles.value}>{formatCurrency(displayFare)}</Text>
         </View>
         <View style={styles.row}>
-          <Text style={styles.label}>Ganhos de hoje</Text>
-          <Text style={styles.value}>{formatCurrency(15250)}</Text>
+          <Text style={styles.label}>Estado API</Text>
+          <Text style={styles.value}>{rideId ? 'completed' : '—'}</Text>
         </View>
         <View style={styles.row}>
           <Text style={styles.label}>Avaliação do cliente</Text>
