@@ -14,7 +14,7 @@ Este documento resume o que torna um super-app **fiável, seguro e escalável** 
 - Cliente com retry leve em 502–504 e refresh token (`/auth/refresh`).
 - Banner de ligação na app quando a API está offline (incl. deteção `offline` na web).
 - `X-Request-Id` em todos os pedidos para suporte e logs.
-- Boundaries globais: `+error.tsx`, `+not-found.tsx`, `RootErrorBoundary`.
+- Boundaries globais: `ErrorBoundary` no `_layout`, `+not-found.tsx`, `RootErrorBoundary` (não usar `+error.tsx` — crasha Expo Router v6).
 
 ## 3. Velocidade percebida (Performance)
 

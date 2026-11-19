@@ -34,12 +34,19 @@ Objectivo: passar de **~50%** (protótipo UI) para **80%+** (produto comercial).
 | P2 | Video consulta | WebRTC médico/astrologia |
 | P2 | Track family | Consent + mapa tempo real |
 
-## Fase 4 — Go-to-market
+## Fase 4 — Go-to-market (**só no lançamento oficial**)
 
-- Publicação Play Store / App Store (EAS)
+> Diferidos até go-live (não trabalhar agora):
+
+- [ ] **LAUNCH-01** Pagamento real EMIS/Multicaixa + webhooks + reconciliação
+- [ ] **LAUNCH-02** DNS `app.urigo.ao` → Vercel
+- [ ] **LAUNCH-03** EAS → Play Store (internal testing) / App Store
 - White-label por cliente (marca admin → builds)
 - SLA bug support + documentação licença
-- Domínios produção (Vercel + API)
+
+## Pré-lançamento (activo)
+
+Plano executável com sprints A–D e IDs: **[EXECUTION-PLAN.md](./EXECUTION-PLAN.md)**
 
 ## Métricas de sucesso
 
@@ -49,10 +56,10 @@ Objectivo: passar de **~50%** (protótipo UI) para **80%+** (produto comercial).
 - [x] Build web Expo estável (`EXPO_EXPORT_WEB` + CI `build:mobile-web`)
 - [x] Telemetria leve + `X-Request-Id` + erros cliente na edge
 - [x] Bucket `uritech-uploads` para presigned upload
-- [ ] 100% fluxos base com backend persistente (NestJS VPS)
-- [ ] Pagamento real end-to-end (EMIS produção)
-- [ ] 52+ serviços on-demand no admin
+- [ ] 100% fluxos base com backend persistente (NestJS VPS) — Sprint B
+- [ ] Pagamento real end-to-end (EMIS) — **LAUNCH-01** (adiado)
+- [ ] 52+ serviços on-demand no admin — Sprint D (base primeiro)
 - [x] 0 rotas órfãs no mobile (FIGMA-MAP 60/60)
 - [ ] AI surge/fraud em produção (mín. 2 features)
 
-Ver também: [WORLD-CLASS-PILLARS.md](./WORLD-CLASS-PILLARS.md)
+Ver também: [WORLD-CLASS-PILLARS.md](./WORLD-CLASS-PILLARS.md) · [EXECUTION-PLAN.md](./EXECUTION-PLAN.md)
