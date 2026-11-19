@@ -1,17 +1,35 @@
 import 'react-native-gesture-handler';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { Stack } from 'expo-router';
+import { Stack, type ErrorBoundaryProps } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { colors, spacing } from '@uritech/shared';
 import { AuthProvider } from '../contexts/AuthContext';
 import { ProfileThemeProvider } from '../contexts/ProfileThemeContext';
 import { ApiStatusBanner } from '../components/ApiStatusBanner';
 import { RootErrorBoundary } from '../components/RootErrorBoundary';
+import { reportClientError } from '../lib/client-diagnostics';
 
 export const unstable_settings = {
   initialRouteName: 'index',
 };
+
+/** Expo Router error boundary (não usar ficheiro +error.tsx — crasha o router). */
+export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
+  void reportClientError(error, { source: 'expo-router-error-boundary' });
+  return (
+    <View style={errorStyles.wrap}>
+      <Ionicons name="cloud-offline-outline" size={48} color="#B45309" />
+      <Text style={errorStyles.title}>Não foi possível abrir este ecrã</Text>
+      <Text style={errorStyles.sub}>{error.message}</Text>
+      <TouchableOpacity style={errorStyles.btn} onPress={retry}>
+        <Text style={errorStyles.btnText}>Tentar novamente</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
 
 export default function RootLayout() {
   return (
@@ -76,4 +94,25 @@ export default function RootLayout() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
+});
+
+const errorStyles = StyleSheet.create({
+  wrap: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+    backgroundColor: colors.gray50,
+    gap: spacing.sm,
+  },
+  title: { fontSize: 18, fontWeight: '800', color: colors.black, textAlign: 'center' },
+  sub: { fontSize: 13, color: colors.gray700, textAlign: 'center' },
+  btn: {
+    marginTop: spacing.md,
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: 12,
+  },
+  btnText: { color: colors.white, fontWeight: '800' },
 });

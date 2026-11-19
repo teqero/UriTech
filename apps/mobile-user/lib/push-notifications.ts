@@ -4,15 +4,18 @@ import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { apiFetch } from './api-fetch';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+// Em web, expo-notifications não tem implementação nativa — evitar crash no boot.
+if (Platform.OS !== 'web') {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+}
 
 export async function registerForPushNotifications(): Promise<string | null> {
   if (Platform.OS === 'web' || !Device.isDevice) return null;
