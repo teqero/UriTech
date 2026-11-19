@@ -38,7 +38,7 @@ Checklist de lançamento (quando for a hora):
 
 | ID | Issue | Entregável | Done when |
 |----|-------|------------|-----------|
-| B1 | [#6](https://github.com/teqero/UriTech/issues/6) NestJS staging VPS | `api-staging.*` `/api/v1` | Health = 200 |
+| B1 | [#6](https://github.com/teqero/UriTech/issues/6) NestJS staging VPS | Compose local `:4001` + doc | **Feito local** — VPS público opcional |
 | B2 | [#7](https://github.com/teqero/UriTech/issues/7) Paridade edge→Nest | Contratos shared | Mobile staging sem 404 P0 |
 | B3 | [#8](https://github.com/teqero/UriTech/issues/8) Ownership de rotas | Doc path→serviço | Uma fonte de verdade |
 

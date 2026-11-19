@@ -1,7 +1,25 @@
 # UriTech — Production Runbook
 
-> Última atualização: 2026-09-10
+> Última atualização: 2026-11-19
 > Objetivo: checklist operacional completo para colocar o sistema em produção real.
+
+---
+
+## Staging NestJS (pré-produção)
+
+Stack API-only documentado em **[STAGING.md](./STAGING.md)**.
+
+```bash
+cp deploy/.env.staging.example deploy/.env.staging
+docker compose -f deploy/docker-compose.staging.yml --env-file deploy/.env.staging up -d --build
+curl -fsS http://localhost:4001/api/v1/health   # expect healthy
+```
+
+| Ambiente | URL |
+|----------|-----|
+| Staging local | `http://localhost:4001/api/v1` |
+| Produção edge (actual) | Supabase `uritech-api` |
+| Produção Nest (futuro) | `https://api.urigo.ao/api/v1` |
 
 ---
 

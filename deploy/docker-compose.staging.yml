@@ -1,0 +1,115 @@
+# UriGo — Staging API-only (NestJS + Postgres + Redis + MinIO)
+# Uso:
+#   cp deploy/.env.staging.example deploy/.env.staging
+#   docker compose -f deploy/docker-compose.staging.yml --env-file deploy/.env.staging up -d --build
+# Health:
+#   curl http://localhost:4001/api/v1/health
+
+name: urigo-staging
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: urigo-staging-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-uritech}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-uritech_staging}
+      POSTGRES_DB: ${POSTGRES_DB:-uritech_staging}
+    command: ['postgres', '-c', 'statement_timeout=0', '-c', 'lock_timeout=0']
+    volumes:
+      - urigo_staging_pgdata:/var/lib/postgresql/data
+      # Sem migrations Supabase aqui — o Nest/TypeORM faz synchronize no schema próprio.
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-uritech} -d ${POSTGRES_DB:-uritech_staging}']
+      interval: 10s
+      timeout: 5s
+      retries: 8
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: urigo-staging-redis
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - urigo_staging_redis:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 8
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio:latest
+    container_name: urigo-staging-minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-uritech}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-uritech_staging}
+    volumes:
+      - urigo_staging_minio:/data
+    command: server /data --console-address ':9001'
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:9000/minio/health/live']
+      interval: 10s
+      timeout: 5s
+      retries: 8
+    restart: unless-stopped
+
+  createbuckets:
+    image: minio/mc:latest
+    container_name: urigo-staging-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc alias set local http://minio:9000 $${MINIO_ROOT_USER:-uritech} $${MINIO_ROOT_PASSWORD:-uritech_staging};
+      /usr/bin/mc mb local/uritech-media --ignore-existing;
+      /usr/bin/mc anonymous set download local/uritech-media;
+      exit 0;
+      "
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-uritech}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-uritech_staging}
+    restart: on-failure
+
+  backend:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.backend
+    container_name: urigo-staging-backend
+    ports:
+      - '${STAGING_API_PORT:-4001}:4000'
+    environment:
+      NODE_ENV: staging
+      PORT: 4000
+      DATABASE_URL: ${DATABASE_URL:-postgresql://uritech:uritech_staging@postgres:5432/uritech_staging}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      JWT_SECRET: ${JWT_SECRET:-urigo-staging-jwt-change-me-32chars}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-*}
+      PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:4001}
+      S3_ENDPOINT: ${S3_ENDPOINT:-http://minio:9000}
+      S3_BUCKET: ${S3_BUCKET:-uritech-media}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-uritech}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-uritech_staging}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      MULTICAIXA_ENV: sandbox
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:4000/api/v1/health']
+      interval: 20s
+      timeout: 10s
+      retries: 6
+      start_period: 40s
+    restart: unless-stopped
+
+volumes:
+  urigo_staging_pgdata:
+  urigo_staging_redis:
+  urigo_staging_minio:
