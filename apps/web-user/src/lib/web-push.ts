@@ -20,7 +20,8 @@ export async function enableWebPush(accessToken: string): Promise<boolean> {
     const config = (await configRes.json()) as { publicKey: string | null; enabled: boolean };
     if (!config.enabled || !config.publicKey) return false;
 
-    const permission = await Notification.requestPermission();
+    // Não pedir permissão no login (bloqueia UI). Só activar se já concedida.
+    const permission = Notification.permission;
     if (permission !== 'granted') return false;
 
     const registration = await navigator.serviceWorker.register('/sw.js');

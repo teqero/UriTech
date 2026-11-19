@@ -51,8 +51,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
     saveSession(stored);
     setSession(stored);
-    void enableWebPush(session.accessToken);
     router.replace(getPostLoginPath(session));
+    // Push em background — nunca bloquear o login / UI
+    queueMicrotask(() => {
+      void enableWebPush(session.accessToken);
+    });
   }, [router]);
 
   const logout = useCallback(async () => {

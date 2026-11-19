@@ -31,7 +31,7 @@ import {
 import styles from '../landing.module.css';
 import trackingStyles from './tracking.module.css';
 
-const STEPS = ['Pedido Confirmado', 'A Caminho', 'Entregue'];
+const STEPS = ['Pedido', 'Motorista', 'A caminho', 'Chegou', 'Viagem'];
 
 export default function TrackingPage() {
   const searchParams = useSearchParams();
