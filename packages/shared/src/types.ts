@@ -25,6 +25,7 @@ export type RideStatus =
   | 'searching'
   | 'driver_found'
   | 'driver_arriving'
+  | 'arrived'
   | 'in_progress'
   | 'completed'
   | 'cancelled';

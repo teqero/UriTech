@@ -14,8 +14,13 @@ curl -fsS http://localhost:4001/api/v1/health   # healthy
 
 ## State machine
 
-`searching` → `driver_found` → `driver_arriving` → `in_progress` → `completed`  
-(ou `cancelled` pelo passageiro)
+`searching` → `driver_found` → `driver_arriving` → **`arrived`** → `in_progress` → `completed`  
+(ou `cancelled` pelo passageiro até `driver_arriving`)
+
+Passageiro em `/rastreamento`:
+- estados em tempo real (WS + poll)
+- pin + **trajetória** do motorista no mapa
+- aviso **Taxi chegou!** (Alert + vibração + push/local) no estado `arrived`
 
 ## Happy path (app)
 
@@ -23,8 +28,8 @@ curl -fsS http://localhost:4001/api/v1/health   # healthy
 2. Confirmar resposta com `id` + `status: searching`; saldo UriPay desce  
 3. Abrir rastreamento `/rastreamento?ref=<uuid>&service=taxi`  
 4. Login **budi** → pedidos → VER PEDIDO → ACEITAR → `driver_found`  
-5. Navegação motorista: ao abrir → `driver_arriving`; CHEGUEI → `in_progress`; DESTINO → ecrã complete → `completed`  
-6. Passageiro: UI/poll reflecte `completed`
+5. Navegação motorista: ao abrir → `driver_arriving` (GPS a cada 3s); **CHEGUEI** → `arrived` (cliente notificado); **INICIAR VIAGEM** → `in_progress`; DESTINO → `completed`  
+6. Passageiro: banner de chegada + mapa com rota; depois `completed`
 
 ## curl (sem UI motorista)
 
@@ -47,7 +52,7 @@ BUDI=$(curl -sS -X POST $BASE/auth/login -H 'Content-Type: application/json' \
   -d '{"email":"budi@uritech.com","password":"demo123"}')
 BT=$(echo "$BUDI" | jq -r '.accessToken // .access_token')
 
-for S in driver_found driver_arriving in_progress completed; do
+for S in driver_found driver_arriving arrived in_progress completed; do
   curl -sS -X PATCH "$BASE/rides/$RID/status" -H "Authorization: Bearer $BT" \
     -H 'Content-Type: application/json' -d "{\"status\":\"$S\"}" | jq -r '.status'
 done

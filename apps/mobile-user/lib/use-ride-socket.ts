@@ -4,16 +4,33 @@ import { getApiBaseUrl } from './api';
 import { loadAuthSession } from './auth-storage';
 import type { Ride, Location } from '@uritech/shared';
 
+const MAX_TRAIL_POINTS = 80;
+
 export interface RideSocketState {
   connected: boolean;
   ride: Ride | null;
   driverLocation: Location | null;
+  /** Histórico recente da trajetória do motorista (ordem cronológica) */
+  driverTrail: Array<{ latitude: number; longitude: number }>;
   error: string | null;
 }
 
 function getWsBaseUrl(): string {
-  const api = getApiBaseUrl(); // e.g. http://host:4000/api/v1
+  const api = getApiBaseUrl();
   return api.replace(/\/api\/v1\/?$/, '');
+}
+
+function appendTrail(
+  trail: Array<{ latitude: number; longitude: number }>,
+  lat: number,
+  lng: number,
+): Array<{ latitude: number; longitude: number }> {
+  const last = trail[trail.length - 1];
+  if (last && Math.abs(last.latitude - lat) < 0.00005 && Math.abs(last.longitude - lng) < 0.00005) {
+    return trail;
+  }
+  const next = [...trail, { latitude: lat, longitude: lng }];
+  return next.length > MAX_TRAIL_POINTS ? next.slice(next.length - MAX_TRAIL_POINTS) : next;
 }
 
 export function useRideSocket(rideId: string | null) {
@@ -21,6 +38,7 @@ export function useRideSocket(rideId: string | null) {
     connected: false,
     ride: null,
     driverLocation: null,
+    driverTrail: [],
     error: null,
   });
   const socketRef = useRef<Socket | null>(null);
@@ -55,16 +73,10 @@ export function useRideSocket(rideId: string | null) {
 
     socket.on('disconnect', (reason) => {
       setState((s) => ({ ...s, connected: false }));
-      // Se o servidor forçou disconnect (ex: token inválido), não reconecta automaticamente
       if (reason === 'io server disconnect') {
         socket.close();
-        // Tentar reconectar após 3s com novo token
         reconnectTimerRef.current = setTimeout(() => connect(), 3000);
       }
-    });
-
-    socket.on('subscribed', (payload: { rideId: string }) => {
-      // console.log('Subscribed to ride', payload.rideId);
     });
 
     socket.on('rideUpdate', (payload: { rideId: string; ride: Ride; event: string }) => {
@@ -83,8 +95,9 @@ export function useRideSocket(rideId: string | null) {
         driverLocation: {
           latitude: payload.lat,
           longitude: payload.lng,
-          address: `Motorista a ${payload.lat.toFixed(4)}, ${payload.lng.toFixed(4)}`,
+          address: `Motorista`,
         },
+        driverTrail: appendTrail(s.driverTrail, payload.lat, payload.lng),
       }));
     });
 
@@ -113,7 +126,13 @@ export function useRideSocket(rideId: string | null) {
       socketRef.current.close();
       socketRef.current = null;
     }
-    setState({ connected: false, ride: null, driverLocation: null, error: null });
+    setState({
+      connected: false,
+      ride: null,
+      driverLocation: null,
+      driverTrail: [],
+      error: null,
+    });
   }, []);
 
   useEffect(() => {

@@ -17,6 +17,8 @@ export function UriMap({
   height = 180,
   flex = false,
   showUserLocation = true,
+  markers = [],
+  trailCoordinates = [],
 }: UriMapProps) {
   const destPlace: DemoPlace | undefined = useMemo(() => {
     if (destinationProp) return destinationProp as DemoPlace;
@@ -28,6 +30,8 @@ export function UriMap({
   const eta = destPlace ? estimateRideMinutes(originPoint, destPlace) : null;
   const wrapStyle = flex ? styles.flex : { height };
   const mapUrl = getMapEmbedUrl(originPoint, destPlace);
+  const lastTrail = trailCoordinates[trailCoordinates.length - 1];
+  const driverMarker = markers[0] ?? (lastTrail ? { ...lastTrail, title: 'Taxi' } : null);
 
   return (
     <View style={[styles.wrap, wrapStyle]}>
@@ -37,11 +41,16 @@ export function UriMap({
         src: mapUrl,
         style: { width: '100%', height: '100%', border: 0 },
       })}
-      {destPlace && eta != null && (
+      {(destPlace && eta != null) || driverMarker ? (
         <View style={styles.badge}>
-          <Text style={styles.badgeText}>~{eta} min · {destPlace.district ?? destPlace.city}</Text>
+          <Text style={styles.badgeText}>
+            {driverMarker
+              ? `Taxi · ${driverMarker.latitude.toFixed(4)}, ${driverMarker.longitude.toFixed(4)}`
+              : `~${eta} min · ${destPlace?.district ?? destPlace?.city}`}
+            {trailCoordinates.length > 1 ? ` · rota ${trailCoordinates.length} pts` : ''}
+          </Text>
         </View>
-      )}
+      ) : null}
     </View>
   );
 }
@@ -61,6 +70,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 10,
     left: 10,
+    right: 10,
     backgroundColor: 'rgba(0,0,0,0.75)',
     paddingHorizontal: 12,
     paddingVertical: 6,

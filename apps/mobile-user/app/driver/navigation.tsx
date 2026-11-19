@@ -7,9 +7,11 @@ import { updateRideStatus } from '../../lib/rides-api';
 import { useRideSocket } from '../../lib/use-ride-socket';
 import { useUserLocation } from '../../lib/use-user-location';
 
+type Phase = 'to_pickup' | 'at_pickup' | 'to_dropoff';
+
 export default function NavigationScreen() {
   const { dest, rideId, fare } = useLocalSearchParams<{ dest?: string; rideId?: string; fare?: string }>();
-  const [phase, setPhase] = useState<'pickup' | 'dropoff'>('pickup');
+  const [phase, setPhase] = useState<Phase>('to_pickup');
   const [busy, setBusy] = useState(false);
 
   const destination = dest ? previewDemoPlace(dest) : undefined;
@@ -21,31 +23,49 @@ export default function NavigationScreen() {
   useEffect(() => {
     if (!rideId) return;
     void updateRideStatus(rideId, 'driver_arriving').catch(() => {
-      /* polling/WS still work if already advanced */
+      /* already advanced */
     });
   }, [rideId]);
 
   useEffect(() => {
     if (!rideId || !connected || !userLocation) return;
 
+    sendDriverLocation(userLocation.latitude, userLocation.longitude);
     const interval = setInterval(() => {
       sendDriverLocation(userLocation.latitude, userLocation.longitude);
-    }, 5000);
+    }, 3000);
 
     return () => clearInterval(interval);
   }, [rideId, connected, userLocation, sendDriverLocation]);
 
   const onArrivedPickup = useCallback(async () => {
     if (!rideId) {
-      setPhase('dropoff');
+      setPhase('at_pickup');
+      return;
+    }
+    setBusy(true);
+    try {
+      await updateRideStatus(rideId, 'arrived');
+      setPhase('at_pickup');
+      Alert.alert('Chegada', 'Cliente notificado: taxi no ponto de recolha.');
+    } catch (e) {
+      Alert.alert('Estado', e instanceof Error ? e.message : 'Não foi possível actualizar');
+    } finally {
+      setBusy(false);
+    }
+  }, [rideId]);
+
+  const onStartTrip = useCallback(async () => {
+    if (!rideId) {
+      setPhase('to_dropoff');
       return;
     }
     setBusy(true);
     try {
       await updateRideStatus(rideId, 'in_progress');
-      setPhase('dropoff');
+      setPhase('to_dropoff');
     } catch (e) {
-      Alert.alert('Estado', e instanceof Error ? e.message : 'Não foi possível actualizar');
+      Alert.alert('Estado', e instanceof Error ? e.message : 'Não foi possível iniciar');
     } finally {
       setBusy(false);
     }
@@ -58,6 +78,13 @@ export default function NavigationScreen() {
     });
   }, [rideId, fare]);
 
+  const phaseBadge =
+    phase === 'to_pickup'
+      ? 'A CAMINHO DA RECOLHA'
+      : phase === 'at_pickup'
+        ? 'NO PONTO DE RECOLHA'
+        : 'A CAMINHO DO DESTINO';
+
   return (
     <View style={styles.container}>
       <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
@@ -68,14 +95,12 @@ export default function NavigationScreen() {
         <UriMap
           flex
           showUserLocation
-          origin={phase === 'pickup' ? undefined : pickup}
-          destination={phase === 'pickup' ? pickup : destination}
-          destinationLabel={dest}
+          origin={phase === 'to_dropoff' ? pickup : undefined}
+          destination={phase === 'to_dropoff' ? destination : pickup}
+          destinationLabel={phase === 'to_dropoff' ? dest : pickup.address}
         />
         <View style={styles.mapOverlay}>
-          <Text style={styles.phaseBadge}>
-            {phase === 'pickup' ? 'A CAMINHO DA RECOLHA' : 'A CAMINHO DO DESTINO'}
-          </Text>
+          <Text style={styles.phaseBadge}>{phaseBadge}</Text>
         </View>
       </View>
 
@@ -95,15 +120,19 @@ export default function NavigationScreen() {
         </View>
         <Text style={styles.nextStep}>PRÓXIMO PASSO</Text>
         <Text style={styles.destination}>
-          {phase === 'pickup' ? 'Recolher passageiro' : 'Levar ao destino'}
+          {phase === 'to_pickup'
+            ? 'Ir à recolha'
+            : phase === 'at_pickup'
+              ? 'À espera do passageiro'
+              : 'Levar ao destino'}
         </Text>
         <Text style={styles.address}>
-          {phase === 'pickup'
-            ? pickup.address ?? 'Ponto de recolha'
-            : destination?.address ?? dest ?? 'Destino'}
+          {phase === 'to_dropoff'
+            ? destination?.address ?? dest ?? 'Destino'
+            : pickup.address ?? 'Ponto de recolha'}
         </Text>
 
-        {phase === 'pickup' ? (
+        {phase === 'to_pickup' && (
           <TouchableOpacity
             style={[styles.arrivedBtn, busy && styles.btnDisabled]}
             onPress={onArrivedPickup}
@@ -115,7 +144,21 @@ export default function NavigationScreen() {
               <Text style={styles.arrivedText}>CHEGUEI À RECOLHA</Text>
             )}
           </TouchableOpacity>
-        ) : (
+        )}
+        {phase === 'at_pickup' && (
+          <TouchableOpacity
+            style={[styles.arrivedBtn, busy && styles.btnDisabled]}
+            onPress={onStartTrip}
+            disabled={busy}
+          >
+            {busy ? (
+              <ActivityIndicator color={colors.white} />
+            ) : (
+              <Text style={styles.arrivedText}>INICIAR VIAGEM</Text>
+            )}
+          </TouchableOpacity>
+        )}
+        {phase === 'to_dropoff' && (
           <TouchableOpacity style={styles.arrivedBtn} onPress={onArrivedDestination}>
             <Text style={styles.arrivedText}>CHEGOU AO DESTINO</Text>
           </TouchableOpacity>

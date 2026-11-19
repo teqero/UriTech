@@ -171,7 +171,12 @@ export class NotificationsService implements OnModuleInit {
       },
       driver_arriving: {
         title: 'Motorista a caminho',
-        body: 'O motorista está a chegar ao ponto de recolha.',
+        body: 'O motorista está a caminho do ponto de recolha. Acompanhe no mapa.',
+        data: { type: 'ride', rideId: ride.id, status: ride.status },
+      },
+      arrived: {
+        title: 'Taxi chegou!',
+        body: 'O motorista está no ponto de recolha. Dirija-se ao veículo.',
         data: { type: 'ride', rideId: ride.id, status: ride.status },
       },
       in_progress: {

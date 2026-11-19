@@ -55,10 +55,12 @@ export function rideStepIndex(status: RideStatus): number {
     case 'driver_found':
       return 1;
     case 'driver_arriving':
-    case 'in_progress':
       return 2;
-    case 'completed':
+    case 'arrived':
       return 3;
+    case 'in_progress':
+    case 'completed':
+      return 4;
     default:
       return 0;
   }
@@ -69,7 +71,8 @@ export function rideStatusLabel(status: RideStatus): string {
     searching: 'A PROCURAR MOTORISTA',
     driver_found: 'MOTORISTA ENCONTRADO',
     driver_arriving: 'MOTORISTA A CAMINHO',
-    in_progress: 'EM CURSO',
+    arrived: 'TAXI CHEGOU',
+    in_progress: 'EM VIAGEM',
     completed: 'CONCLUÍDO',
     cancelled: 'CANCELADO',
   };
@@ -79,6 +82,11 @@ export function rideStatusLabel(status: RideStatus): string {
 export function rideEtaHint(status: RideStatus, service: string): string {
   if (status === 'searching') return 'A procurar motorista disponível';
   if (status === 'driver_found') return 'Motorista a preparar-se';
+  if (status === 'driver_arriving') {
+    return service === 'taxi' ? 'Acompanhe a trajetória do taxi no mapa' : 'Estafeta a caminho';
+  }
+  if (status === 'arrived') return 'O taxi está no ponto de recolha';
+  if (status === 'in_progress') return 'Viagem em curso';
   if (status === 'cancelled') return 'Pedido cancelado';
   return service === 'taxi' ? 'O motorista está a caminho' : 'O estafeta está a esta distância';
 }

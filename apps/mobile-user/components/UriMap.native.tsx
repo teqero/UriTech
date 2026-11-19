@@ -20,6 +20,8 @@ export function UriMap({
   flex = false,
   showUserLocation = true,
   markers = [],
+  trailCoordinates = [],
+  showDriverToPickup = false,
 }: UriMapProps) {
   const destPlace: DemoPlace | undefined = useMemo(() => {
     if (destinationProp) return destinationProp as DemoPlace;
@@ -31,18 +33,29 @@ export function UriMap({
 
   const routePoints = useMemo(() => {
     const pts = [
-      showUserLocation && userLocation ? userLocation : { latitude: originPoint.latitude, longitude: originPoint.longitude },
+      showUserLocation && userLocation
+        ? userLocation
+        : { latitude: originPoint.latitude, longitude: originPoint.longitude },
     ];
     if (destPlace) pts.push({ latitude: destPlace.latitude, longitude: destPlace.longitude });
     markers.forEach((m) => pts.push({ latitude: m.latitude, longitude: m.longitude }));
+    trailCoordinates.forEach((p) => pts.push(p));
     return pts;
-  }, [showUserLocation, userLocation, originPoint, destPlace, markers]);
+  }, [showUserLocation, userLocation, originPoint, destPlace, markers, trailCoordinates]);
 
   const region = useMemo(() => fitMapRegion(routePoints), [routePoints]);
   const eta = destPlace ? estimateRideMinutes(originPoint, destPlace) : null;
   const wrapStyle = flex ? styles.flex : { height };
   const [mapReady, setMapReady] = useState(false);
   const staticUrl = getStaticMapUrl(originPoint, destPlace);
+
+  const driverToPickup =
+    showDriverToPickup && trailCoordinates.length > 0
+      ? [
+          trailCoordinates[trailCoordinates.length - 1],
+          { latitude: originPoint.latitude, longitude: originPoint.longitude },
+        ]
+      : [];
 
   useEffect(() => {
     const timer = setTimeout(() => setMapReady(true), 100);
@@ -73,7 +86,7 @@ export function UriMap({
       >
         <Marker
           coordinate={{ latitude: originPoint.latitude, longitude: originPoint.longitude }}
-          title="Origem"
+          title="Recolha"
           pinColor={colors.primary}
         />
         {destPlace ? (
@@ -91,12 +104,20 @@ export function UriMap({
             pinColor={m.pinColor ?? colors.secondary}
           />
         ))}
-        {destPlace ? (
+        {trailCoordinates.length > 1 ? (
+          <Polyline coordinates={trailCoordinates} strokeColor="#1A73E8" strokeWidth={4} />
+        ) : null}
+        {driverToPickup.length === 2 ? (
+          <Polyline coordinates={driverToPickup} strokeColor="#94A3B8" strokeWidth={2} />
+        ) : null}
+        {destPlace && trailCoordinates.length === 0 ? (
           <Polyline
             coordinates={[
               {
-                latitude: showUserLocation && userLocation ? userLocation.latitude : originPoint.latitude,
-                longitude: showUserLocation && userLocation ? userLocation.longitude : originPoint.longitude,
+                latitude:
+                  showUserLocation && userLocation ? userLocation.latitude : originPoint.latitude,
+                longitude:
+                  showUserLocation && userLocation ? userLocation.longitude : originPoint.longitude,
               },
               { latitude: destPlace.latitude, longitude: destPlace.longitude },
             ]}
@@ -109,7 +130,9 @@ export function UriMap({
       {(locating || (destPlace && eta != null)) && (
         <View style={styles.badge}>
           <Text style={styles.badgeText}>
-            {locating ? 'A obter GPS…' : `~${eta} min · ${destPlace?.district ?? destPlace?.city ?? ''}`}
+            {locating
+              ? 'A obter GPS…'
+              : `~${eta} min · ${destPlace?.district ?? destPlace?.city ?? ''}`}
           </Text>
         </View>
       )}
