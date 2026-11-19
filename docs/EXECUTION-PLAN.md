@@ -39,8 +39,8 @@ Checklist de lançamento (quando for a hora):
 | ID | Issue | Entregável | Done when |
 |----|-------|------------|-----------|
 | B1 | [#6](https://github.com/teqero/UriTech/issues/6) NestJS staging VPS | Compose local `:4001` + doc | **Feito local** — VPS público opcional |
-| B2 | [#7](https://github.com/teqero/UriTech/issues/7) Paridade edge→Nest | Contratos shared | Mobile staging sem 404 P0 |
-| B3 | [#8](https://github.com/teqero/UriTech/issues/8) Ownership de rotas | Doc path→serviço | Uma fonte de verdade |
+| B2 | [#7](https://github.com/teqero/UriTech/issues/7) Paridade edge→Nest | Gaps UriPay + CORS | **Feito** — image/PATCH/sync no Nest |
+| B3 | [#8](https://github.com/teqero/UriTech/issues/8) Ownership de rotas | `docs/API-ROUTE-OWNERSHIP.md` | **Feito** |
 
 ### Sprint C — Fluxos P0 persistentes (1–2 semanas)
 

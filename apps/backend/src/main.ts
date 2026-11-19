@@ -99,7 +99,14 @@ async function bootstrap() {
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-Id'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Request-Id',
+      'X-UriGo-Client',
+      'X-UriGo-Channel',
+      'apikey',
+    ],
     exposedHeaders: ['X-Request-Id'],
     maxAge: 86400,
   });

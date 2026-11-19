@@ -1,5 +1,7 @@
 import {
   BadRequestException,
+  HttpException,
+  HttpStatus,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -17,7 +19,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { OrdersService } from '../orders/orders.service';
 import { UsersService } from '../users/users.service';
 import { WalletService } from '../wallet/wallet.service';
-import type { CheckoutSocialPaymentDto } from './dto/social-payment.dto';
+import type { CheckoutSocialPaymentDto, UpdateSocialPaymentDto } from './dto/social-payment.dto';
 import { PlatformDetectorService } from './services/platform-detector.service';
 import { SocialImportEngine } from './services/social-import.engine';
 import { SocialSyncService } from './services/social-sync.service';
@@ -198,6 +200,77 @@ export class SocialPaymentsService {
       syncStatus: sync.syncStatus,
       syncMessage: sync.syncMessage,
     });
+  }
+
+  /** Edge parity: re-import metadata from original URL, then mark synced. */
+  async resyncFromUrl(id: string, buyerId: string): Promise<SocialPaymentRecord> {
+    const record = await this.getById(id, buyerId);
+    try {
+      const product = await this.importEngine.importFromUrl(record.originalUrl);
+      const sync = this.syncService.markSynced(product.platform);
+      return this.updateRecord(id, {
+        title: product.title || record.title,
+        description: product.description || record.description,
+        price: product.price > 0 ? product.price : record.price,
+        currency: product.currency || record.currency,
+        category: product.category ?? record.category,
+        condition: product.condition ?? record.condition,
+        brand: product.brand ?? record.brand,
+        city: product.city ?? record.city,
+        country: product.country ?? record.country,
+        images: product.images?.length ? product.images : record.images,
+        videos: product.videos?.length ? product.videos : record.videos,
+        sellerName: product.sellerName ?? record.sellerName,
+        syncStatus: sync.syncStatus,
+        syncMessage: sync.syncMessage,
+      });
+    } catch {
+      return this.markSynced(id, buyerId);
+    }
+  }
+
+  async updateProduct(
+    id: string,
+    buyerId: string,
+    dto: UpdateSocialPaymentDto,
+  ): Promise<SocialPaymentRecord> {
+    await this.getById(id, buyerId);
+    const patch: Partial<SocialPaymentRecord> & { metadata?: Record<string, unknown> } = {};
+    if (dto.title != null) patch.title = String(dto.title).slice(0, 512);
+    if (dto.description != null) patch.description = String(dto.description).slice(0, 4000);
+    if (dto.price != null && Number.isFinite(dto.price) && dto.price >= 0) {
+      patch.price = dto.price;
+      patch.total = dto.price;
+    }
+
+    const row = await this.repo.findOne({ where: { id } });
+    if (!row) throw new NotFoundException('Pagamento não encontrado');
+    Object.assign(row, patch);
+    row.metadata = { ...(row.metadata ?? {}), manuallyEdited: true };
+    const saved = await this.repo.save(row);
+    return this.toRecord(saved);
+  }
+
+  async proxyImage(imageUrl: string): Promise<{ buffer: Buffer; contentType: string }> {
+    try {
+      const res = await fetch(imageUrl, {
+        headers: {
+          'User-Agent': 'facebookexternalhit/1.1',
+          Accept: 'image/*,*/*',
+          Referer: new URL(imageUrl).origin,
+        },
+        redirect: 'follow',
+      });
+      if (!res.ok) {
+        throw new NotFoundException('Imagem não disponível');
+      }
+      const contentType = res.headers.get('content-type') ?? 'image/jpeg';
+      const buffer = Buffer.from(await res.arrayBuffer());
+      return { buffer, contentType };
+    } catch (err) {
+      if (err instanceof NotFoundException) throw err;
+      throw new HttpException('Não foi possível carregar a imagem', HttpStatus.BAD_GATEWAY);
+    }
   }
 
   private async saveImported(buyerId: string, product: ImportedSocialProduct): Promise<SocialPaymentRecord> {

@@ -54,7 +54,7 @@ EXPO_PUBLIC_API_URL=http://localhost:4001/api/v1
 | Staging Nest | Este compose (`:4001`) |
 | Produção Nest (futuro) | `api.urigo.ao` via `deploy/docker-compose.prod.yml` |
 
-Ver ownership de rotas: issue [#8](https://github.com/teqero/UriTech/issues/8) / `docs/API-EDGE.md`.
+Ver ownership de rotas: [`docs/API-ROUTE-OWNERSHIP.md`](./API-ROUTE-OWNERSHIP.md).
 
 ## Checklist VPS (quando houver máquina)
 

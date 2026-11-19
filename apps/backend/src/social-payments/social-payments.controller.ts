@@ -1,13 +1,24 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   ForbiddenException,
   Get,
   Param,
+  Patch,
   Post,
+  Query,
+  Res,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { CurrentUser, JwtUserPayload } from '../auth/current-user.decorator';
-import { ImportProductDto, CheckoutSocialPaymentDto, PaySocialPaymentDto } from './dto/social-payment.dto';
+import { Public } from '../auth/public.decorator';
+import {
+  CheckoutSocialPaymentDto,
+  ImportProductDto,
+  PaySocialPaymentDto,
+  UpdateSocialPaymentDto,
+} from './dto/social-payment.dto';
 import { SocialPaymentsService } from './social-payments.service';
 
 @Controller('social-payments')
@@ -27,9 +38,33 @@ export class SocialPaymentsController {
     return this.socialPaymentsService.listByBuyer(user.userId);
   }
 
+  /** Proxy OG images — must be registered before `:id` */
+  @Public()
+  @Get('image')
+  async proxyImage(@Query('url') url: string | undefined, @Res() res: Response) {
+    if (!url?.startsWith('http')) {
+      throw new BadRequestException('URL de imagem inválida');
+    }
+    const proxied = await this.socialPaymentsService.proxyImage(url);
+    res.set({
+      'Content-Type': proxied.contentType,
+      'Cache-Control': 'public, max-age=86400',
+    });
+    res.send(proxied.buffer);
+  }
+
   @Get(':id')
   getOne(@Param('id') id: string, @CurrentUser() user: JwtUserPayload) {
     return this.socialPaymentsService.getById(id, user.userId);
+  }
+
+  @Patch(':id')
+  update(
+    @Param('id') id: string,
+    @Body() body: UpdateSocialPaymentDto,
+    @CurrentUser() user: JwtUserPayload,
+  ) {
+    return this.socialPaymentsService.updateProduct(id, user.userId, body);
   }
 
   @Post(':id/checkout')
@@ -52,6 +87,6 @@ export class SocialPaymentsController {
 
   @Post(':id/sync')
   sync(@Param('id') id: string, @CurrentUser() user: JwtUserPayload) {
-    return this.socialPaymentsService.markSynced(id, user.userId);
+    return this.socialPaymentsService.resyncFromUrl(id, user.userId);
   }
 }

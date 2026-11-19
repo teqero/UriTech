@@ -1,8 +1,25 @@
-import { IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsInt, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
 
 export class ImportProductDto {
   @IsString()
   url!: string;
+}
+
+export class UpdateSocialPaymentDto {
+  @IsOptional()
+  @IsString()
+  title?: string;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  price?: number;
 }
 
 export class CheckoutSocialPaymentDto {
