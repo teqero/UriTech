@@ -65,7 +65,11 @@ services:
       /bin/sh -c "
       /usr/bin/mc alias set local http://minio:9000 $${MINIO_ROOT_USER:-uritech} $${MINIO_ROOT_PASSWORD:-uritech_staging};
       /usr/bin/mc mb local/uritech-media --ignore-existing;
+      /usr/bin/mc mb local/uritech-claims --ignore-existing;
+      /usr/bin/mc mb local/uritech-uploads --ignore-existing;
       /usr/bin/mc anonymous set download local/uritech-media;
+      /usr/bin/mc anonymous set download local/uritech-claims;
+      /usr/bin/mc anonymous set download local/uritech-uploads;
       exit 0;
       "
     environment:
@@ -89,6 +93,7 @@ services:
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-*}
       PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:4001}
       S3_ENDPOINT: ${S3_ENDPOINT:-http://minio:9000}
+      S3_PUBLIC_URL: ${S3_PUBLIC_URL:-http://localhost:9000}
       S3_BUCKET: ${S3_BUCKET:-uritech-media}
       S3_ACCESS_KEY: ${S3_ACCESS_KEY:-uritech}
       S3_SECRET_KEY: ${S3_SECRET_KEY:-uritech_staging}

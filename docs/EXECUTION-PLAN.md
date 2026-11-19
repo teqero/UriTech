@@ -48,7 +48,7 @@ Checklist de lançamento (quando for a hora):
 |----|-------|------------|-----------|
 | C1 | [#9](https://github.com/teqero/UriTech/issues/9) Taxi→tracking→pay | `docs/TAXI-E2E-STAGING.md` + driver PATCH | **Feito** — estados persistidos |
 | C2 | [#10](https://github.com/teqero/UriTech/issues/10) UriPay→escrow | `holdInEscrow` + doc | **Feito** — ver `URIPAY-E2E-STAGING.md` |
-| C3 | [#11](https://github.com/teqero/UriTech/issues/11) UriProva upload→claim | Bucket uploads | Ref + hash visíveis |
+| C3 | [#11](https://github.com/teqero/UriTech/issues/11) UriProva upload→claim | MinIO claims + doc | **Feito** — `URIPROVA-E2E-STAGING.md` |
 
 ### Sprint D — Qualidade & escala suave (contínuo)
 

@@ -19,10 +19,10 @@ export class ClaimEvidenceController {
     return this.claimEvidenceService.findAll(insurerId);
   }
 
-  @Roles('admin')
   @Get('reference/:ref')
-  @ApiOperation({ summary: 'Buscar por referência' })
+  @ApiOperation({ summary: 'Buscar por referência (dono do dossiê / suporte)' })
   @ApiParam({ name: 'ref' })
+  @ApiResponse({ status: 200, description: 'Dossiê encontrado' })
   findByReference(@Param('ref') ref: string) {
     return this.claimEvidenceService.findByReference(ref);
   }

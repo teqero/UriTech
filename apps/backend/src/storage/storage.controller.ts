@@ -58,7 +58,11 @@ export class StorageController {
   async getPresignedUrl(
     @Body() body: { key: string; contentType: string; bucket?: string },
   ) {
-    const bucket = body.bucket || 'uritech-media';
+    const bucket =
+      body.bucket ||
+      process.env.S3_BUCKET ||
+      process.env.UPLOAD_BUCKET ||
+      'uritech-uploads';
     const key = body.key || this.storage.generateKey('uploads', 'file.bin');
     const url = await this.storage.getSignedUploadUrl(key, bucket, body.contentType);
     return { url, key, bucket, publicUrl: this.storage.getPublicUrl(key, bucket) };

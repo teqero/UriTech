@@ -53,8 +53,11 @@ Uma fonte de verdade por path. O mobile usa o mesmo sufixo relativo sob `{BASE}/
 | POST | `/social-payments/:id/checkout` | Both | |
 | POST | `/social-payments/:id/pay` | Both | Nest: **escrow hold** + order; Edge: ainda `payment` até paridade |
 | POST | `/social-payments/:id/sync` | Both | Nest re-importa URL (paridade Edge) |
-| GET | `/insurers`, claim-evidence | Edge (+ Nest insurers) | UriProva cutover Sprint C |
-| POST | `/upload/presigned` | Edge-only | Até bucket Nest/MinIO alinhado |
+| GET | `/insurers` | Both | Nest seed + Edge |
+| POST | `/claim-evidence` | Both | Nest + MinIO; Edge Supabase |
+| GET | `/claim-evidence/reference/:ref` | Nest | Lookup por referência |
+| POST | `/upload/presigned` | Both | Nest MinIO (`uritech-uploads`); Edge Supabase |
+| POST | `/upload/claim` | Nest-only | Multipart → `uritech-claims` |
 | POST | `/notifications/register` | Both | |
 | POST | `/telemetry/client-error` | Edge-only | Logs edge |
 
