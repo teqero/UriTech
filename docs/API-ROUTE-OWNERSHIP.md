@@ -51,7 +51,7 @@ Uma fonte de verdade por path. O mobile usa o mesmo sufixo relativo sob `{BASE}/
 | GET | `/social-payments/:id` | Both | |
 | PATCH | `/social-payments/:id` | Both | Edição manual título/preço |
 | POST | `/social-payments/:id/checkout` | Both | |
-| POST | `/social-payments/:id/pay` | Both | |
+| POST | `/social-payments/:id/pay` | Both | Nest: **escrow hold** + order; Edge: ainda `payment` até paridade |
 | POST | `/social-payments/:id/sync` | Both | Nest re-importa URL (paridade Edge) |
 | GET | `/insurers`, claim-evidence | Edge (+ Nest insurers) | UriProva cutover Sprint C |
 | POST | `/upload/presigned` | Edge-only | Até bucket Nest/MinIO alinhado |

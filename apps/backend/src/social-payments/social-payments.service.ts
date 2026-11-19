@@ -116,21 +116,14 @@ export class SocialPaymentsService {
 
     const amount = record.total > 0 ? record.total : record.price * record.quantity;
     const txCode = `SP-${Date.now().toString(36).toUpperCase()}`;
-
-    if (payWithWallet) {
-      await this.walletService.pay(
-        buyerId,
-        amount,
-        `UriPay Link — ${record.title.slice(0, 80)}`,
-      );
-    }
-
     const platformInfo = this.platformDetector.detect(record.originalUrl);
+    const escrowDescription = `UriPay Link — ${record.title.slice(0, 80)}`;
 
+    // Order first, then escrow hold (same pattern as store/service checkout)
     const order = await this.ordersService.create({
       userId: buyerId,
       serviceType: 'pay',
-      status: 'confirmed',
+      status: 'pending',
       items: [{
         menuItemId: record.id,
         name: record.title,
@@ -150,6 +143,23 @@ export class SocialPaymentsService {
         address: record.city ?? 'Entrega — comprador UriPay',
       },
     });
+
+    if (payWithWallet) {
+      try {
+        await this.walletService.holdInEscrow(
+          buyerId,
+          order.id,
+          amount,
+          escrowDescription,
+          record.sellerId,
+        );
+      } catch (err) {
+        await this.ordersService.updateStatus(order.id, 'cancelled');
+        throw err;
+      }
+    }
+
+    await this.ordersService.updateStatus(order.id, 'confirmed');
 
     const sync = this.syncService.evaluate(platformInfo, record.originalUrl);
 
